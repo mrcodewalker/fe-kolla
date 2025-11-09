@@ -1,0 +1,534 @@
+<div class="flex h-full">
+  <!-- Nav bên trái -->
+  <nav class="w-1/5 min-w-[200px] bg-white border-r border-gray-200 flex flex-col items-center relative">
+    <div class="w-full p-6 pb-1">
+      <a routerLink="/home/roomlist" class="flex items-center transition-colors font-medium mb-4"
+        [ngClass]="{'text-cyan-700': isHovered, 'text-gray-700': !isHovered}" (mouseenter)="isHovered = true"
+        (mouseleave)="isHovered = false" style="text-decoration: none;">
+        <i class="fa-solid fa-angle-left mr-2"></i> Danh sách nhóm
+      </a>
+      <div class="flex flex-col items-center">
+        <div class="w-24 h-24 bg-gray-200 rounded-[10px] flex items-center justify-center mb-3 mt-3">
+          <i class="fa-solid fa-users text-gray-500 text-4xl"></i>
+        </div>
+        <h5 class="text-medium font-bold text-gray-700 mb-2 text-center">{{ room?.roomName }}</h5>
+      </div>
+    </div>
+    <!-- Meeting management section -->
+    <div class="w-full flex flex-col items-center">
+      <div class="w-full">
+        <div class="relative w-full">
+          <div class="flex items-center gap-2 mb-2 h-10">
+            <button class="h-10 flex-1 flex items-center justify-start bg-white rounded px-2 text-gray-700 font-normal"
+              (click)="showMeetings = !showMeetings">
+              <i class="pi mr-2 inline-flex items-center justify-center w-4 h-4 leading-none text-[14px]" [ngClass]="showMeetings ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+              <span class="text-sm">Danh sách cuộc họp</span>
+            </button>
+            <button
+              (click)="onRefreshMeetings()"
+              class="border border-gray-500 rounded-md bg-white hover:bg-gray-200 text-gray-500 text-xs w-8 h-8 flex items-center justify-center shrink-0"
+              title="Tải lại danh sách cuộc họp">
+              <i class="pi pi-refresh inline-flex items-center justify-center w-4 h-4 leading-none text-[14px]"></i>
+            </button>
+            <button
+              (click)="onAddMeeting()"
+              class="border border-gray-500 rounded-md bg-white hover:bg-gray-200 text-gray-500 text-xs w-8 h-8 flex items-center justify-center shrink-0"
+              title="Thêm cuộc họp mới">
+              <i class="pi pi-plus inline-flex items-center justify-center w-4 h-4 leading-none text-[14px]"></i>
+            </button>
+          </div>
+          <ul *ngIf="showMeetings" class="space-y-2 absolute left-0 top-full mt-1 w-full bg-white rounded z-10">
+            <li *ngFor="let meeting of meetings"
+              class="px-3 py-1 pl-10 text-sm flex items-center justify-between relative"
+              [ngClass]="{
+                'bg-gray-200': selectedMeeting?.id === meeting.id,
+                'cursor-not-allowed opacity-50': meeting.isExpired && !isAdmin,
+                'cursor-pointer hover:bg-gray-200': !meeting.isExpired || (meeting.isExpired && isAdmin),
+                'text-gray-700': !meeting.isExpired || (meeting.isExpired && isAdmin)
+              }"
+              (click)="onSelectMeeting(meeting.id)">
+              <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <div class="truncate" [class.text-red-600]="meeting.isExpired" [class.text-gray-700]="!meeting.isExpired" title="{{ meeting.title }}" [style.text-decoration-line]="meeting.isExpired ? 'line-through' : 'none'" [style.opacity]="meeting.isExpired && !isAdmin ? '0.5' : '1'">{{ meeting.title }}</div>
+                  <span *ngIf="meeting.isComingSoon && meeting.membershipStatus === 'APPROVED'" class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full flex-shrink-0">Sắp diễn ra</span>
+                  <span *ngIf="meeting.isExpired" class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex-shrink-0">Đã hết hạn</span>
+                  <span *ngIf="!meeting.isComingSoon && !meeting.isExpired && meeting.membershipStatus === 'APPROVED'" class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full flex-shrink-0">Đã duyệt</span>
+                  <span *ngIf="meeting.membershipStatus === 'PENDING'" class="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full flex-shrink-0">Chờ duyệt</span>
+                  <span *ngIf="meeting.membershipStatus === 'NONE'" class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full flex-shrink-0">Yêu cầu</span>
+                </div>
+                <div *ngIf="!meeting.isExpired || (meeting.isExpired && isAdmin)">
+                  <button (click)="toggleMeetingMenu(meeting.id); $event.stopPropagation()" class="p-1 rounded hover:bg-gray-200">
+                    <i class="pi pi-ellipsis-h text-gray-500 text-base"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="ml-auto relative z-10" (click)="$event.stopPropagation()">
+                <div *ngIf="meetingMenuId === meeting.id && (!meeting.isExpired || (meeting.isExpired && isAdmin))"
+                    class="absolute right-0 top-7 bg-white border rounded shadow-lg w-28 py-0.5">
+                  <button class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100"
+                      (click)="editMeeting(meeting)">
+                    <i class="pi pi-pen-to-square mr-1 text-[13px]"></i>
+                    <span class="flex-1">Chỉnh sửa</span>
+                  </button>
+                  <button class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100 text-red-600"
+                      (click)="deleteMeeting(meeting.id)">
+                    <i class="fa-regular fa-trash-can mr-1 text-[13px]"></i>
+                    <span class="flex-1">Xóa</span>
+                  </button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Phần bên phải -->
+  <div class="flex-1 bg-white">
+    <!-- Meeting detail header -->
+    <div class="border-b px-6 pt-4 pb-2 flex gap-6 items-center justify-between">
+      <div class="flex gap-6 items-center">
+        <button class="text-gray-700 font-medium px-2 py-1 border-b-2" [ngClass]="{'border-cyan-600': mainTab === 'info', 'border-transparent': mainTab !== 'info'}" (click)="onTabChange('info')">Thông tin</button>
+        <button class="text-gray-700 font-medium px-2 py-1 border-b-2" [ngClass]="{'border-cyan-600': mainTab === 'room_members', 'border-transparent': mainTab !== 'room_members'}" (click)="onTabChange('room_members')">Thành viên</button>
+        <button class="text-gray-700 font-medium px-2 py-1 border-b-2" [ngClass]="{'border-cyan-600': mainTab === 'organizer', 'border-transparent': mainTab !== 'organizer'}" (click)="onTabChange('organizer')">Người tổ chức</button>
+        <button class="text-gray-700 font-medium px-2 py-1 border-b-2" [ngClass]="{'border-cyan-600': mainTab === 'messages', 'border-transparent': mainTab !== 'messages'}" (click)="onTabChange('messages')">Tin nhắn</button>
+        <button class="text-gray-700 font-medium px-2 py-1 border-b-2" [ngClass]="{'border-cyan-600': mainTab === 'documents', 'border-transparent': mainTab !== 'documents'}" (click)="onTabChange('documents')">Tài liệu</button>
+      </div>
+      <div *ngIf="selectedMeeting">
+        <button 
+          *ngIf="selectedMeeting.membershipStatus === 'APPROVED'"
+          [disabled]="selectedMeeting.isExpired"
+          (click)="joinMeeting(selectedMeeting)"
+          class="font-semibold px-4 py-2 rounded-[8px] text-sm text-white"
+          [ngClass]="{
+            'bg-cyan-600 hover:bg-cyan-700': !selectedMeeting.isExpired,
+            'bg-gray-400 cursor-not-allowed': selectedMeeting.isExpired
+          }"
+          [title]="selectedMeeting.isExpired ? 'Cuộc họp đã hết hạn' : 'Tham gia họp'">
+          Tham gia họp
+        </button>
+        <button 
+          *ngIf="selectedMeeting.membershipStatus === 'PENDING'"
+          class="bg-gray-400 text-white font-semibold px-4 py-2 rounded-[8px] text-sm cursor-not-allowed" 
+          disabled>
+          Đang chờ duyệt
+        </button>
+        <button 
+          *ngIf="selectedMeeting.membershipStatus === 'NONE'"
+          (click)="requestToJoinMeeting(selectedMeeting.id)"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-[8px] text-sm"
+          title="Gửi yêu cầu tham gia">
+          Gửi yêu cầu tham gia
+        </button>
+      </div>
+    </div>
+    <div class="p-6">
+      <ng-container *ngIf="mainTab === 'info'">
+        <!-- Thông tin cuộc họp -->
+        <div *ngIf="selectedMeeting">
+          <div class="overflow-x-auto">
+            <table class="rounded-sm w-full text-sm border">
+              <tbody>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Tên</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.title }}</td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Mô tả</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.description }}</td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Người tạo</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.createdByName || selectedMeeting.createdByEmail || '-' }}</td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Thời gian bắt đầu</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.startTime | date:'dd/MM/yyyy, hh:mm a' }}</td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Thời gian kết thúc</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.endTime | date:'dd/MM/yyyy, hh:mm a' }}</td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Trạng thái</td>
+                  <td class="px-3 py-2">
+                    <ng-container *ngIf="selectedMeeting">
+                      <span [ngClass]="getMeetingStatus(selectedMeeting).color" class="font-normal">
+                        {{ getMeetingStatus(selectedMeeting).text }}
+                      </span>
+                    </ng-container>
+                  </td>
+                </tr>
+                <tr class="border-b">
+                  <td class="font-semibold px-3 py-2 w-48">Link Meeting</td>
+                  <td class="px-3 py-2 text-cyan-700">{{ selectedMeeting.meetingLink }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div *ngIf="!selectedMeeting" class="text-gray-400 text-sm">Chọn một cuộc họp để xem thông tin.</div>
+      </ng-container>
+
+      <ng-container *ngIf="mainTab === 'room_members'">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-4">
+            <div class="text-sm">
+              <span class="font-semibold">Đã tham gia: </span>
+              <span class="text-green-600 font-bold">{{ joinedCount }}</span>
+            </div>
+            <div class="text-sm flex items-center gap-2">
+              <span class="font-semibold">Chờ duyệt: </span>
+              <span class="text-yellow-600 font-bold">{{ pendingCount }}</span>
+              <button
+                (click)="selectedMeeting && loadMeetingMembers(selectedMeeting.id)"
+                [disabled]="!selectedMeeting"
+                class="ml-2 p-1.5 rounded hover:bg-gray-200 text-gray-600"
+                title="Tải lại danh sách thành viên">
+                <i class="pi pi-refresh text-sm"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- ADMIN Filters and Actions -->
+          <div *ngIf="isAdmin" class="flex items-center gap-3">
+            <!-- Filter by approval status -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-gray-700">Lọc theo: </label>
+              <select 
+                [(ngModel)]="filterApprovalStatus" 
+                (change)="onApprovalFilterChange()"
+                class="border rounded px-2 py-1 text-sm">
+                <option value="all">Tất cả</option>
+                <option value="approved">Đã phê duyệt</option>
+                <option value="pending">Chờ phê duyệt</option>
+              </select>
+            </div>
+
+            <!-- Approve selected button - only enabled when pending members are selected -->
+            <button 
+              (click)="approveSelectedMembers()"
+              [disabled]="!hasSelectedPendingMembers"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded text-sm font-medium">
+              Phê duyệt ({{ selectedMembers.length }})
+            </button>
+
+            <!-- Reject selected button - only enabled when active members are selected -->
+            <button 
+              (click)="rejectSelectedMembers()"
+              [disabled]="!hasSelectedActiveMembers"
+              class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded text-sm font-medium">
+              Hủy phê duyệt ({{ selectedMembers.length }})
+            </button>
+          </div>
+        </div>
+        
+        <!-- Danh sách thành viên phòng -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm border">
+            <thead>
+              <tr class="bg-gray-100">
+                <th *ngIf="isAdmin" class="px-3 py-2 text-center font-semibold w-12">
+                  <input 
+                    type="checkbox" 
+                    (change)="selectAllMembers()"
+                    [checked]="isAllSelected"
+                    class="cursor-pointer"
+                  />
+                </th>
+                <th class="px-3 py-2 text-center font-semibold w-16">STT</th>
+                <th class="px-3 py-2 text-left font-semibold">Tên</th>
+                <th class="px-3 py-2 text-left font-semibold">Email</th>
+                <th class="px-3 py-2 text-left font-semibold">Vai trò</th>
+                <th class="px-3 py-2 text-left font-semibold">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let member of meetingMembers; let i = index" 
+                  class="border-b hover:bg-gray-50"
+                  [ngClass]="{'bg-blue-50': member.selected && isAdmin}">
+                <td *ngIf="isAdmin" class="px-3 py-2 text-center">
+                  <input 
+                    type="checkbox" 
+                    [checked]="member.selected"
+                    (change)="toggleMemberSelection(member)"
+                    class="cursor-pointer"
+                  />
+                </td>
+                <td class="px-3 py-2 text-center">{{ currentPage * pageSize + i + 1 }}</td>
+                <td class="px-3 py-2">{{ member.name || '-' }}</td>
+                <td class="px-3 py-2">{{ member.userEmail || '-' }}</td>
+                <td class="px-3 py-2">
+                  <select 
+                    *ngIf="isAdmin"
+                    (change)="onRoleChange(member, +$any($event.target).value)"
+                    class="border rounded px-2 py-1 text-sm w-full">
+                    <option 
+                      *ngFor="let role of roles" 
+                      [value]="role.id"
+                      [selected]="member.roleId === role.id">
+                      {{ translateRole(role.name) }}
+                    </option>
+                  </select>
+                  <span *ngIf="!isAdmin">{{ translateRole(member.roleName) || '-' }}</span>
+                </td>
+                <td class="px-3 py-2">
+                  <span [ngClass]="member.active ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'">
+                    {{ member.active ? 'Đã phê duyệt' : 'Chờ phê duyệt' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="!meetingMembers || meetingMembers.length === 0" class="text-gray-400 text-sm mt-4">
+            Chưa có thành viên nào trong cuộc họp này.
+          </div>
+        </div>
+        <!-- Pagination controls -->
+        <div *ngIf="totalPages > 1" class="mt-6">
+          <div class="text-sm text-gray-600 text-center mb-4">
+            Hiển thị {{ meetingMembers.length }} / {{ totalMembers }} thành viên
+          </div>
+          <div class="flex items-center justify-center gap-1">
+            <!-- First page button -->
+            <button
+              (click)="goToFirstPage()"
+              [disabled]="currentPage === 0"
+              class="p-2 rounded hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              title="Trang đầu">
+              <i class="pi pi-angle-double-left text-sm"></i>
+            </button>
+            
+            <!-- Previous page button -->
+            <button
+              (click)="previousPage()"
+              [disabled]="currentPage === 0"
+              class="p-2 rounded hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              title="Trang trước">
+              <i class="pi pi-angle-left text-sm"></i>
+            </button>
+
+            <!-- Page number buttons -->
+            <span *ngFor="let page of getVisiblePages()" class="inline-block">
+              <button
+                *ngIf="page === currentPage; else otherPage"
+                (click)="onPageChange(page)"
+                class="px-3 py-2 rounded bg-cyan-600 text-white font-semibold min-w-[40px] hover:bg-cyan-700 transition-colors">
+                {{ page + 1 }}
+              </button>
+              <ng-template #otherPage>
+                <button
+                  (click)="onPageChange(page)"
+                  class="px-3 py-2 rounded hover:bg-gray-100 text-gray-700 font-medium min-w-[40px] transition-colors">
+                  {{ page + 1 }}
+                </button>
+              </ng-template>
+            </span>
+
+            <!-- Next page button -->
+            <button
+              (click)="nextPage()"
+              [disabled]="currentPage >= totalPages - 1"
+              class="p-2 rounded hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              title="Trang sau">
+              <i class="pi pi-angle-right text-sm"></i>
+            </button>
+
+            <!-- Last page button -->
+            <button
+              (click)="goToLastPage()"
+              [disabled]="currentPage >= totalPages - 1"
+              class="p-2 rounded hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              title="Trang cuối">
+              <i class="pi pi-angle-double-right text-sm"></i>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="mainTab === 'messages'">
+        <div class="flex flex-col h-[75vh] border rounded shadow bg-white">
+          <div class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div *ngFor="let msg of messages" [ngClass]="{'justify-end': msg.isMine, 'justify-start': !msg.isMine}" class="flex">
+              <div [ngClass]="msg.isMine ? 'bg-cyan-600 text-white' : 'bg-gray-200 text-gray-700'" class="rounded-lg px-3 py-2 max-w-[70%] text-sm">
+                {{ msg.text }}
+              </div>
+            </div>
+          </div>
+          <div class="border-t p-3 flex items-center gap-2">
+            <input type="text" [(ngModel)]="newMessage" placeholder="Nhập tin nhắn..." class="flex-1 border rounded px-2 py-1 text-sm" (keydown.enter)="sendMessage()" />
+            <button class="px-3 py-1 rounded bg-cyan-600 text-white" (click)="sendMessage()">Gửi</button>
+          </div>
+        </div>
+      </ng-container>
+
+      
+      <ng-container *ngIf="mainTab === 'organizer'">
+        <!-- Thành viên cuộc họp -->
+        <div *ngIf="selectedMeeting">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-sm">Thông tin người tổ chức</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm border">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="px-3 py-2 text-left font-semibold">Tên</th>
+                  <th class="px-3 py-2 text-left font-semibold">Email</th>
+                  <th class="px-3 py-2 text-left font-semibold">Khoa</th>
+                  <th class="px-3 py-2 text-left font-semibold">Mã khoa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b">
+                  <td class="px-3 py-2">{{ selectedMeeting.createdByName || '-' }}</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.createdByEmail || '-' }}</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.departmentName || '-' }}</td>
+                  <td class="px-3 py-2">{{ selectedMeeting.departmentCode || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div *ngIf="!selectedMeeting" class="text-gray-400 text-sm">Chọn một cuộc họp để xem thành viên.</div>
+      </ng-container>
+
+      <ng-container *ngIf="mainTab === 'documents'">
+        <div class="flex flex-col h-[75vh] border rounded shadow bg-white">
+          <div class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div *ngIf="documents.length === 0" class="text-gray-400 text-sm">Chưa có tài liệu nào trong cuộc họp này.</div>
+            <div *ngFor="let doc of documents" class="flex items-center justify-between bg-gray-100 rounded px-3 py-2 mb-2">
+              <div class="flex items-center gap-2">
+                <i class="fa fa-file text-cyan-600"></i>
+                <span class="text-sm">{{ doc.name }}</span>
+              </div>
+              <a [href]="doc.url" target="_blank" class="text-cyan-700 text-xs px-2 py-1 rounded hover:bg-cyan-100">Tải xuống</a>
+            </div>
+          </div>
+          <div class="border-t p-3 flex items-center gap-2">
+            <input type="file" (change)="onFileSelected($event)" class="flex-1 border rounded px-2 py-1 text-sm" />
+            <button class="px-3 py-1 rounded bg-cyan-600 text-white" (click)="uploadFile()">Tải lên</button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Modal yêu cầu tham gia -->
+  <div *ngIf="showMembershipModal && selectedMeeting" class="fixed inset-0 z-50">
+    <app-membership-requirement
+      [meetingId]="selectedMeeting.id"
+      [meetingTitle]="selectedMeeting.title"
+      (close)="onCloseMembershipModal()"
+      (success)="onMembershipSuccess()">
+    </app-membership-requirement>
+  </div>
+
+  <!-- Modal thêm meeting -->
+  <div *ngIf="showAddMeetingModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-300 animate-fadein">
+    <div class="bg-white rounded-lg p-6 w-[450px] shadow-lg transform transition-all duration-300 animate-modal">
+      <h3 class="font-bold text-lg mb-4">Tạo cuộc họp mới</h3>
+      <form (ngSubmit)="addMeeting()" #meetingForm="ngForm">
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Tên</label>
+          <input type="text" class="border rounded px-2 py-1 w-full" [(ngModel)]="newMeeting.title" name="title" required />
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời gian bắt đầu</label>
+          <input type="datetime-local" class="border rounded px-2 py-1 w-full" [(ngModel)]="newMeeting.startTime" name="startTime" (change)="onDurationChange()" required />
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời lượng</label>
+          <select [(ngModel)]="selectedDuration" (change)="onDurationChange()" name="duration" class="border rounded px-2 py-1 w-full">
+            <option value="1">1 tiếng</option>
+            <option value="3">3 tiếng</option>
+            <option value="5">5 tiếng</option>
+            <option value="8">8 tiếng</option>
+            <option value="24">1 ngày (24 tiếng)</option>
+            <option value="forever">Vĩnh viễn (100 năm)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời gian kết thúc</label>
+          <input type="datetime-local" class="border rounded px-2 py-1 w-full" [(ngModel)]="newMeeting.endTime" name="endTime" (change)="onManualEndTimeChange()" required />
+        </div>
+        <div *ngIf="timeValidationError" class="mb-3 text-red-600 text-sm">
+          {{ timeValidationError }}
+        </div>
+        <div class="flex gap-2 justify-end mt-4">
+          <button type="button" class="px-3 py-1 rounded bg-gray-200 text-gray-700" (click)="showAddMeetingModal = false; timeValidationError = ''">Hủy</button>
+          <button type="submit" class="px-3 py-1 rounded bg-cyan-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed" [disabled]="!meetingForm.valid || !newMeeting.title">Tạo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog -->
+  <app-confirm-dialog
+    [showDialog]="showConfirmDialog"
+    [title]="confirmDialogTitle"
+    [message]="confirmDialogMessage"
+    confirmText="Xác nhận"
+    cancelText="Hủy"
+    [confirmButtonClass]="confirmDialogType === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
+    (confirmed)="onConfirmDialogConfirmed()"
+    (cancelled)="onConfirmDialogCancelled()"
+    (showDialogChange)="showConfirmDialog = $event">
+  </app-confirm-dialog>
+
+  <!-- Modal sửa meeting -->
+  <div *ngIf="showEditMeetingModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-300 animate-fadein">
+    <div class="bg-white rounded-lg p-6 w-[450px] shadow-lg transform transition-all duration-300 animate-modal">
+      <h3 class="font-bold text-lg mb-4">Chỉnh sửa cuộc họp</h3>
+      <form (ngSubmit)="updateMeeting()" #editMeetingForm="ngForm">
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Tên</label>
+          <input type="text" class="border rounded px-2 py-1 w-full" [(ngModel)]="editingMeeting.title" name="editTitle" required />
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời gian bắt đầu</label>
+          <input type="datetime-local" class="border rounded px-2 py-1 w-full" [(ngModel)]="editingMeeting.startTime" name="editStartTime" (change)="onEditDurationChange()" required />
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời lượng</label>
+          <select [(ngModel)]="selectedEditDuration" (change)="onEditDurationChange()" name="editDuration" class="border rounded px-2 py-1 w-full">
+            <option value="1">1 tiếng</option>
+            <option value="3">3 tiếng</option>
+            <option value="5">5 tiếng</option>
+            <option value="8">8 tiếng</option>
+            <option value="24">1 ngày (24 tiếng)</option>
+            <option value="forever">Vĩnh viễn (100 năm)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Thời gian kết thúc</label>
+          <input type="datetime-local" class="border rounded px-2 py-1 w-full" [(ngModel)]="editingMeeting.endTime" name="editEndTime" (change)="onManualEditEndTimeChange()" required />
+        </div>
+        <div *ngIf="timeValidationError" class="mb-3 text-red-600 text-sm">
+          {{ timeValidationError }}
+        </div>
+        <div class="flex gap-2 justify-end mt-4">
+          <button type="button" class="px-3 py-1 rounded bg-gray-200 text-gray-700" (click)="showEditMeetingModal = false; timeValidationError = ''">Hủy</button>
+          <button type="submit" class="px-3 py-1 rounded bg-cyan-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed" [disabled]="!editMeetingForm.valid || !editingMeeting.title">Cập nhật</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confirm Dialog Component -->
+<app-confirm-dialog
+  [showDialog]="showConfirmDialog"
+  [title]="confirmDialogTitle"
+  [message]="confirmDialogMessage"
+  confirmText="Có"
+  cancelText="Không"
+  (confirmed)="onConfirmDialogConfirmed()"
+  (cancelled)="onConfirmDialogCancelled()"
+  (showDialogChange)="showConfirmDialog = $event">
+</app-confirm-dialog>
+
+<!-- PrimeNG Toast Component -->
+<p-toast></p-toast>

@@ -1,0 +1,29 @@
+// Custom styles for decorative elements positioning
+:host {
+  position: relative;
+  display: block;
+}
+
+// Ensure decorative elements are positioned relative to the component
+.absolute {
+  position: absolute;
+}
+
+// Custom backdrop blur fallback for older browsers
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+// Ensure proper z-index for decorative elements
+.absolute.top-10 {
+  z-index: -1;
+}
+
+.absolute.bottom-10 {
+  z-index: -1;
+}
+
+.absolute.top-1\/2 {
+  z-index: -1;
+}

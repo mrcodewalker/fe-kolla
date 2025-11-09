@@ -1,0 +1,110 @@
+<div class="flex h-full">
+    <!-- Sidebar bên trái -->
+    <nav class="w-64 bg-gray-100 flex flex-col items-center py-8 shadow">
+        <div class="mb-6 mt-8">
+            <div class="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-user text-cyan-600 text-4xl"></i>
+            </div>
+        </div>
+        <div class="text-center">
+            <h2 class="text-xl font-bold text-cyan-700 mb-1">{{ user?.name || 'Chưa đăng nhập' }}</h2>
+            <p class="text-sm text-gray-500 mb-2">{{ user?.email || '-' }}</p>
+        </div>
+    </nav>
+    <!-- Nội dung bên phải -->
+    <div class="flex-1 p-8 flex justify-center items-start py-9 bg-gray-50">
+        <div class="w-full max-w-[900px] mx-auto flex flex-col">
+            <div class="w-full">
+                <table class="w-full bg-white rounded-lg shadow-lg text-sm">
+                    <tbody>
+                        <!-- table rows giữ nguyên như cũ -->
+                        <tr class="border-b align-middle">
+                            <td class="py-4 font-semibold text-gray-600 w-32 pl-6">Tên</td>
+                            <td class="py-4">
+                                <ng-container *ngIf="isEditMode; else showName">
+                                    <input type="text" class="border rounded px-3 py-2 w-full min-h-[32px]"
+                                        [(ngModel)]="editUser.name" />
+                                </ng-container>
+                                <ng-template #showName>
+                                    {{ user?.name || '-' }}
+                                </ng-template>
+                            </td>
+                        </tr>
+                        <tr class="border-b align-middle">
+                            <td class="py-4 font-semibold text-gray-600 pl-6">Email</td>
+                            <td class="py-4">
+                                <ng-template #showEmail>
+                                    {{ user?.email || '-' }}
+                                </ng-template>
+                                {{ user?.email || '-' }}
+                            </td>
+                        </tr>
+                        <tr class="border-b align-middle">
+                            <td class="py-4 font-semibold text-gray-600 w-32 pl-6">Tên ngân hàng</td>
+                            <td class="py-4">
+                                <ng-container *ngIf="isEditMode; else showBankName">
+                                    <input type="text" class="border rounded px-3 py-2 w-full min-h-[32px]"
+                                        [(ngModel)]="editUser.bankName" />
+                                </ng-container>
+                                <ng-template #showBankName>
+                                    {{ user?.bankName || '-' }}
+                                </ng-template>
+                            </td>
+                        </tr>
+                        <tr class="border-b align-middle">
+                            <td class="py-4 font-semibold text-gray-600 w-32 pl-6">Số tài khoản</td>
+                            <td class="py-4">
+                                <ng-container *ngIf="isEditMode; else showBankNumber">
+                                    <input type="text" class="border rounded px-3 py-2 w-full min-h-[32px]"
+                                        [(ngModel)]="editUser.bankNumber" />
+                                </ng-container>
+                                <ng-template #showBankNumber>
+                                    {{ user?.bankNumber || '-' }}
+                                </ng-template>
+                            </td>
+                        </tr>
+                        <tr class="align-middle">
+                            <td class="py-4 font-semibold text-gray-600 pl-6">Chức vụ</td>
+                            <td class="py-4">
+                                {{ user?.role || '-' }}
+                            </td>
+                        </tr>
+                        <tr class="border-b align-middle">
+                            <td class="py-4 font-semibold text-gray-600 pl-6">Khoa</td>
+                            <td class="py-4">
+                                {{ user?.department || '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-6 w-full flex justify-end">
+                <button *ngIf="!isEditMode" (click)="enableEditMode()"
+                    class="px-4 py-2 bg-cyan-700 text-white rounded hover:bg-cyan-800">Chỉnh sửa</button>
+                <div *ngIf="isEditMode" class="flex gap-2">
+                    <button (click)="saveChanges()"
+                        [disabled]="!hasChanges()"
+                        [class]="hasChanges() ? 'px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 cursor-pointer' : 'px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed'">Lưu</button>
+                    <button (click)="cancelEdit()"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog Component -->
+    <app-confirm-dialog
+      [showDialog]="showConfirmDialog"
+      title="Xác nhận cập nhật"
+      message="Bạn có chắc chắn muốn cập nhật thông tin cá nhân?"
+      confirmText="Có"
+      cancelText="Không"
+      (confirmed)="executeSaveChanges()"
+      (cancelled)="onConfirmDialogCancelled()"
+      (showDialogChange)="showConfirmDialog = $event">
+    </app-confirm-dialog>
+
+    <!-- PrimeNG Toast Component -->
+    <p-toast></p-toast>
+
+</div>

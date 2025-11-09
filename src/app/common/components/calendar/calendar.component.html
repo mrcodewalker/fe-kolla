@@ -1,0 +1,83 @@
+<div class="w-full max-w-6xl mx-auto bg-white rounded-lg shadow p-8 min-h-[400px] mt-2">
+    <div class="flex items-center justify-between mb-2">
+        <button (click)="prevMonth()" class="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">&lt;</button>
+        <div class="font-bold text-lg">{{ monthNames[currentMonth] }} {{ currentYear }}</div>
+        <button (click)="nextMonth()" class="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">&gt;</button>
+    </div>
+    <div class="grid grid-cols-7 gap-1 mb-1">
+        <div *ngFor="let day of weekDays" class="text-center font-semibold text-xs text-gray-500">{{ day }}</div>
+    </div>
+    <div class="grid grid-cols-7 gap-1">
+        <ng-container *ngFor="let day of calendarDays">
+            <div class="min-h-[60px] h-[140px] border rounded flex flex-col px-2 pt-2 pb-1 cursor-pointer relative"
+                [ngClass]="{
+									 'bg-cyan-50 text-white': day.isToday,
+									 'opacity-40': !day.isCurrentMonth
+								 }" (click)="selectDay(day)">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-semibold text-base" [ngClass]="{
+															'bg-cyan-600 text-white rounded-full px-2': day.isToday || (selectedDay && day.date.toDateString() === selectedDay.toDateString())
+														}">
+                        {{ day.date.getDate() }}
+                    </span>
+                </div>
+                <div *ngFor="let event of getEventsForDay(day.date)"
+                    class="text-xs mt-1 truncate border border-cyan-500 rounded px-1 py-0.5 text-cyan-700 hover:bg-cyan-100 transition-colors cursor-pointer"
+                    (click)="$event.stopPropagation(); onEventClick(event)">
+                    <span>{{ event.title }}</span>
+                    <span class="ml-1">({{ event.createdByName }})</span>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+
+    <div *ngIf="showEventModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-all duration-300 animate-fade-in">
+        <div class="bg-white rounded-lg p-6 w-[500px]">
+            <h3 class="font-bold text-lg mb-4">Thông tin cuộc họp</h3>
+                        <div *ngIf="selectedEvent">
+                            <table class="w-full text-sm">
+                                <tbody>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Tiêu đề:</td>
+                                        <td class="py-1">{{ selectedEvent.title }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Người tạo:</td>
+                                        <td class="py-1">{{ selectedEvent.createdByName }}</td>
+                                    </tr>
+                                    <tr class="bg-cyan-50">
+                                        <td class="font-semibold py-1 pr-2">Thời gian:</td>
+                                        <td class="py-1 font-semibold text-cyan-700">{{ selectedEvent.startTime | date:'dd/MM/yyyy HH:mm' }} - {{ selectedEvent.endTime | date:'dd/MM/yyyy HH:mm' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Phòng:</td>
+                                        <td class="py-1">{{ selectedEvent.roomName }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Mã phòng:</td>
+                                        <td class="py-1">{{ selectedEvent.roomCode }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Khoa:</td>
+                                        <td class="py-1">{{ selectedEvent.departmentName }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Mã khoa:</td>
+                                        <td class="py-1">{{ selectedEvent.departmentCode }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-semibold py-1 pr-2">Link:</td>
+                                        <td class="py-1"><span class="text-cyan-700">{{ selectedEvent.meetingLink }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+            <div class="flex justify-end mt-4">
+            <button class="px-3 py-1 rounded bg-cyan-600 text-white mr-2 hover:bg-cyan-700" 
+                *ngIf="selectedEvent?.meetingLink" 
+                (click)="joinMeeting(selectedEvent?.meetingLink)">Tham gia họp</button>
+            <button class="px-3 py-1 rounded bg-gray-300 text-white hover:bg-gray-400" (click)="closeEventModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>

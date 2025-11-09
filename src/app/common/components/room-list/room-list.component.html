@@ -1,0 +1,139 @@
+<div class="bg-white p-4">
+    <div class="flex items-center justify-between border-b pb-2 mb-4">
+        <h2 class="text-lg font-bold text-gray-700">Nhóm</h2>
+        <div class="flex items-center gap-2">
+            <input type="text" class="border rounded px-2 py-1 text-sm" placeholder="Tìm theo tên..."
+                [(ngModel)]="keyword" (ngModelChange)="onSearchKeywordChange($event)" />
+            <select class="border rounded px-2 py-1 text-sm" [(ngModel)]="selectedDepartmentId" (ngModelChange)="onDepartmentChange($event)">
+                <option value="">Tất cả phòng ban</option>
+                <option *ngFor="let dept of department" [value]="dept.id">{{ dept.departmentName }}</option>
+            </select>
+            <button class="bg-cyan-700 text-white px-4 py-1.5 rounded hover:bg-cyan-800 transition"
+                (click)="openCreateModal()">Tạo nhóm mới</button>
+        </div>
+    </div>
+    <!-- Danh sách các nhóm -->
+    <div class="flex flex-wrap gap-3">
+        <!-- Thay thế bằng danh sách nhóm thực tế -->
+        <div *ngFor="let room of roomList; let i = index"
+            class="flex items-center bg-white border border-gray-200 rounded px-4 py-2 min-w-[300px] w-[300px] h-32 hover:bg-gray-100 relative cursor-pointer"
+            (click)="goToRoomDetail(room)">
+            <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center mr-2">
+                <i class="fa-solid fa-users text-gray-500 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <div class="text-gray-700 font-normal h-10">{{room.roomName}}</div>
+                <!-- Nút trạng thái -->
+                <div class="mt-2">
+                </div>
+            </div>
+            <div class="ml-auto relative z-10" (click)="$event.stopPropagation()">
+                <button (click)="toggleRoomMenu(i)" class="p-1 rounded hover:bg-gray-200">
+                    <i class="fa-solid fa-ellipsis-h text-gray-500 text-base"></i>
+                </button>
+                <div *ngIf="roomMenuIndex === i"
+                    class="room-menu-popup absolute right-0 top-7 bg-white border rounded shadow-lg w-28 py-0.5">
+                    <button class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100"
+                        (click)="openRenameRoom(room)">
+                        <i class="pi pi-pen-to-square mr-1 text-[13px]"></i>
+                        <span class="flex-1">Chỉnh sửa</span>
+                    </button>
+                    <button class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100 text-red-600"
+                        (click)="requestDeleteRoom(room.id)">
+                        <i class="fa-regular fa-trash-can mr-1 text-[13px]"></i>
+                        <span class="flex-1">Xóa nhóm</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination controls -->
+    <div class="mt-6 flex items-center justify-between" *ngIf="totalPages > 0">
+        <div class="text-base text-gray-700">
+            Hiển thị {{ roomList.length }} / {{ totalRooms }} nhóm (Trang {{ page + 1 }} / {{ totalPages }})
+        </div>
+        <div class="flex items-center gap-2">
+            <button (click)="onPageChange(0)" [disabled]="page === 0"
+                class="px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                «
+            </button>
+            <button (click)="previousPage()" [disabled]="page === 0"
+                class="px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                ‹
+            </button>
+            <span class="px-4 py-2 text-base font-semibold bg-white border border-gray-300 rounded-md">{{ page + 1 }}</span>
+            <button (click)="nextPage()" [disabled]="page >= totalPages - 1"
+                class="px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                ›
+            </button>
+            <button (click)="onPageChange(totalPages - 1)" [disabled]="page >= totalPages - 1"
+                class="px-3 py-2 rounded-md border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                »
+            </button>
+        </div>
+    </div>
+    
+    <!-- Confirm Dialog -->
+    <app-confirm-dialog
+      [showDialog]="showConfirmDialog"
+      [title]="confirmDialogTitle"
+      [message]="confirmDialogMessage"
+      confirmText="Xác nhận"
+      cancelText="Hủy"
+      [confirmButtonClass]="confirmDialogType === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
+      (confirmed)="onConfirmDialogConfirmed()"
+      (cancelled)="onConfirmDialogCancelled()"
+      (showDialogChange)="showConfirmDialog = $event">
+    </app-confirm-dialog>
+
+    <!-- Toast -->
+    <p-toast></p-toast>
+    <!-- Modal tạo nhóm mới -->
+    <div *ngIf="showCreateModal"
+        class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-300 animate-fade-in">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-[480px] transform transition-all duration-300 animate-modal-in">
+            <h3 class="text-lg font-bold mb-4">Tạo nhóm mới</h3>
+            <form (ngSubmit)="submitCreateRoom()" #createRoomForm="ngForm">
+                <label for="newRoomName" class="block text-sm font-medium text-gray-700 mb-1">Tên nhóm</label>
+                <input id="newRoomName" type="text" class="border rounded px-3 py-2 w-full mb-4" placeholder="Tên nhóm"
+                    [(ngModel)]="newRoomName" name="roomName" required spellcheck="false" />
+                <label for="newRoomDepartmentId" class="block text-sm font-medium text-gray-700 mb-1">Phòng ban</label>
+                <select id="newRoomDepartmentId" class="border rounded px-3 py-2 w-full mb-4" [(ngModel)]="newRoomDepartmentId"
+                    name="departmentId" required>
+                    <option *ngFor="let dept of department" [value]="dept.id">{{ dept.departmentName }}</option>
+                </select>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="px-4 py-1.5 rounded bg-gray-300 hover:bg-gray-400"
+                        (click)="closeCreateModal()">Hủy</button>
+                    <button type="submit" class="px-4 py-1.5 rounded bg-cyan-700 text-white hover:bg-cyan-800"
+                        [disabled]="!createRoomForm.form.valid">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Model đổi tên nhóm -->
+    <div *ngIf="showRenameModal"
+        class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-300 animate-fade-in">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-[480px] transform transition-all duration-300 animate-modal-in">
+            <h3 class="text-lg font-bold mb-4">Chỉnh sửa</h3>
+            <form (ngSubmit)="submitRenameRoom()" #renameRoomForm="ngForm">
+                <label for="renameRoomNewName" class="block text-sm font-medium text-gray-700 mb-1">Tên nhóm</label>
+                <input id="renameRoomNewName" type="text" class="border rounded px-3 py-2 w-full mb-4" placeholder="Tên mới"
+                    [(ngModel)]="renameRoomNewName" name="newRoomName" required spellcheck="false" />
+                <label for="renameRoomDepartmentId" class="block text-sm font-medium text-gray-700 mb-1">Phòng ban</label>
+                <select id="renameRoomDepartmentId" class="border rounded px-3 py-2 w-full mb-4" [(ngModel)]="renameRoomDepartmentId"
+                    [ariaPlaceholder]="'Phòng ban'" name="departmentId" required>
+                    <option *ngFor="let dept of department" [value]="dept.id">{{ dept.departmentName }}</option>
+                </select>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="px-4 py-1.5 rounded bg-gray-300 hover:bg-gray-400"
+                        (click)="closeRenameModal()">Hủy</button>
+                    <button type="submit" class="px-4 py-1.5 rounded bg-cyan-700 text-white hover:bg-cyan-800"
+                        [disabled]="!renameRoomForm.form.valid">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

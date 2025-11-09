@@ -1,0 +1,61 @@
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50" (click)="closeModal()">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-md" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="border-b px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+          <i class="pi pi-users text-cyan-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">Yêu cầu tham gia cuộc họp</h2>
+          <p class="text-sm text-gray-500">Gửi yêu cầu để tham gia</p>
+        </div>
+      </div>
+      <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+        <i class="pi pi-times text-xl"></i>
+      </button>
+    </div>
+    
+    <!-- Content -->
+    <div class="p-6 space-y-4">
+      <!-- Message Display -->
+      <div class="rounded-lg p-4 border" 
+           [ngClass]="{
+             'bg-blue-50 border-blue-200 text-blue-800': messageType === 'info',
+             'bg-green-50 border-green-200 text-green-800': messageType === 'success',
+             'bg-red-50 border-red-200 text-red-800': messageType === 'error'
+           }">
+        <div class="flex items-start gap-3">
+          <i class="flex-shrink-0 mt-0.5" 
+             [ngClass]="{
+               'pi pi-info-circle text-blue-500 text-lg': messageType === 'info',
+               'pi pi-check-circle text-green-500 text-lg': messageType === 'success',
+               'pi pi-times-circle text-red-500 text-lg': messageType === 'error'
+             }"></i>
+          <p class="text-sm leading-relaxed">{{ message }}</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3">
+        <button 
+          type="button" 
+          class="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          [disabled]="!meetingId || isLoading"
+          (click)="requestToJoinMeeting()">
+          <i [ngClass]="isLoading ? 'pi pi-spin pi-spinner' : 'pi pi-send'" class="text-sm"></i>
+          <span>{{ isLoading ? 'Đang gửi...' : 'Gửi yêu cầu' }}</span>
+        </button>
+        
+        <button 
+          type="button" 
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          (click)="closeModal()">
+          <i class="pi pi-times text-sm"></i>
+          <span>Đóng</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

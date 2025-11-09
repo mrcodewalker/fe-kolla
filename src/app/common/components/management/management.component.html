@@ -1,0 +1,525 @@
+<div class="user-management-container p-4">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="flex justify-content-between align-items-center mb-4">
+      <div class="flex align-items-center gap-3">
+        <div>
+          <h3 class="m-0 title">Quản lí tài khoản</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section mb-3">
+    <div class="card search-card" [class.loading-overlay]="loading">
+      <div class="card-body p-3">
+        <form [formGroup]="form" (ngSubmit)="onSearch()">
+          <!-- First row of search fields -->
+          <div class="search-row mb-3">
+            <!-- Keyword Field -->
+            <div class="field-group">
+              <label for="keyword" class="field-label">
+                <span>Từ khóa</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="keyword" 
+                  type="text" 
+                  pInputText 
+                  formControlName="keyword" 
+                  placeholder="Nhập từ khóa..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Name Field -->
+            <div class="field-group">
+              <label for="name" class="field-label">               
+                <span>Tên</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="name" 
+                  type="text" 
+                  pInputText 
+                  formControlName="name" 
+                  placeholder="Nhập tên..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Email Field -->
+            <div class="field-group">
+              <label for="email" class="field-label">
+                <span>Email</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="email" 
+                  type="email" 
+                  pInputText 
+                  formControlName="email" 
+                  placeholder="Nhập email..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- User Code Field -->
+            <div class="field-group">
+              <label for="userCode" class="field-label">
+                <span>Mã người dùng</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="userCode" 
+                  type="text" 
+                  pInputText 
+                  formControlName="userCode" 
+                  placeholder="Nhập mã người dùng..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Phone Number Field -->
+            <div class="field-group">
+              <label for="phoneNumber" class="field-label">
+                <span>Số điện thoại</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="phoneNumber" 
+                  type="text" 
+                  pInputText 
+                  formControlName="phoneNumber" 
+                  placeholder="Nhập số điện thoại..." 
+                  class="input-field" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Second row of search fields -->
+          <div class="search-row mb-3">
+            <!-- Identification Field -->
+            <div class="field-group">
+              <label for="identification" class="field-label">
+                <span>CCCD/CMND</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="identification" 
+                  type="text" 
+                  pInputText 
+                  formControlName="identification" 
+                  placeholder="Nhập CCCD/CMND..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Bank Name Field -->
+            <div class="field-group">
+              <label for="bankName" class="field-label">
+                <span>Tên ngân hàng</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="bankName" 
+                  type="text" 
+                  pInputText 
+                  formControlName="bankName" 
+                  placeholder="Nhập tên ngân hàng..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Bank Number Field -->
+            <div class="field-group">
+              <label for="bankNumber" class="field-label">
+                <span>Số tài khoản</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="bankNumber" 
+                  type="text" 
+                  pInputText 
+                  formControlName="bankNumber" 
+                  placeholder="Nhập số tài khoản..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Department Field -->
+            <div class="field-group">
+              <label for="departmentId" class="field-label">
+                <span>Phòng ban</span>
+              </label>
+              <div class="input-container">
+                <p-dropdown 
+                  id="departmentId"
+                  formControlName="departmentId"
+                  [options]="departments"
+                  optionLabel="departmentName"
+                  optionValue="id"
+                  placeholder="Chọn phòng ban"
+                  [showClear]="true"
+                  styleClass="input-field">
+                </p-dropdown>
+              </div>
+            </div>
+
+            <!-- Role Field -->
+            <div class="field-group">
+              <label for="roleId" class="field-label">
+                <span>Vai trò</span>
+              </label>
+              <div class="input-container">
+                <p-dropdown 
+                  id="roleId"
+                  formControlName="roleId"
+                  [options]="roles"
+                  optionLabel="name"
+                  optionValue="id"
+                  placeholder="Chọn vai trò"
+                  [showClear]="true"
+                  styleClass="input-field">
+                </p-dropdown>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="actions-group">
+            <button 
+              pButton 
+              type="button" 
+              label="Làm mới"
+              [disabled]="loading" 
+              class="p-button-outlined p-button-secondary btn-action" 
+              [style]="{'font-weight': '500 !important', 'font-size': '0.875rem !important', 'font-style': 'normal'}"
+              (click)="onClear()">
+            </button>
+            <button 
+              pButton 
+              label="Tìm kiếm" 
+              type="submit" 
+              [disabled]="loading"
+              [loading]="loading"
+              loadingIcon="pi pi-spin pi-spinner"
+              [style]="{'font-weight': '500 !important', 'font-size': '0.875rem !important', 'font-style': 'normal'}"
+              class="p-button-primary btn-action">
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column Settings Section -->
+  <div class="column-settings-section mb-3">
+    <div class="flex justify-content-end">
+      <button 
+        pButton 
+        type="button" 
+        icon="pi pi-cog"
+        label="Tùy chỉnh hiển thị cột"
+        class="p-button-outlined p-button-info"
+        [style]="{'font-weight': '600', 'border-radius': '8px'}"
+        (click)="showColumnSelector = true">
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-wrapper">
+    <p-table
+      [value]="rows"
+      [columns]="displayedColumns"
+      [loading]="loading"
+      [paginator]="true"
+      [lazy]="true"
+      [rows]="size"
+      [totalRecords]="totalRecords"
+      [rowsPerPageOptions]="[5,10,25,50]"
+      [paginatorPosition]="'top'"
+      [pageLinkSize]="5"
+      [showCurrentPageReport]="true"
+      [currentPageReportTemplate]="'Hiển thị {first} - {last} trong tổng số {totalRecords} bản ghi'"
+      [globalFilterFields]="globalFilterFields"
+      [first]="page * size"
+      (onPage)="onPageChange($event)"
+      (onSort)="onSortChange($event)"
+      styleClass="p-datatable-gridlines small-table p-datatable-scrollable">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th *ngFor="let col of displayedColumns" 
+              [pSortableColumn]="col.field"
+              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'">
+            <div class="th-content">
+              <span class="th-title">{{col.header}}</span>
+              <p-sortIcon [field]="col.field" *ngIf="col.field !== 'actions'"></p-sortIcon>
+            </div>
+          </th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-rowData>
+        <tr>
+          <td *ngFor="let col of displayedColumns" 
+              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'"
+              class="small-text">
+            <ng-container [ngSwitch]="col.field">
+              <span *ngSwitchCase="'active'">
+                <span class="p-tag" [class]="rowData.active ? 'p-tag-success' : 'p-tag-danger'">
+                  {{ rowData.active ? 'Hoạt động' : 'Vô hiệu hóa' }}
+                </span>
+              </span>
+              <div *ngSwitchCase="'actions'" class="flex align-items-center justify-content-center gap-2">
+                <button 
+                  pButton 
+                  type="button" 
+                  label="Chỉnh sửa"
+                  class="p-button-sm p-button-outlined p-button-info"
+                  (click)="onEdit(rowData)">
+                </button>
+                <button 
+                  pButton 
+                  type="button" 
+                  label="Xóa"
+                  class="p-button-sm p-button-outlined p-button-danger"
+                  (click)="onDelete(rowData)">
+                </button>
+              </div>
+              <span *ngSwitchDefault>{{ rowData[col.field] || '-' }}</span>
+            </ng-container>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td [attr.colspan]="displayedColumns.length" class="text-center">
+            Không tìm thấy dữ liệu
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Column Selector Dialog -->
+  <p-dialog 
+    [(visible)]="showColumnSelector" 
+    [modal]="true" 
+    [closable]="true" 
+    [draggable]="false" 
+    [resizable]="false"
+    styleClass="column-selector-dialog rounded-dialog"
+    [showHeader]="true"
+    header="Tùy chỉnh hiển thị cột"
+    [style]="{width: '580px', 'max-width': '95vw', 'border-radius': '16px !important', 'overflow': 'hidden'}">
+    
+    <div class="column-selector-content">
+      <div class="column-options-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="pi pi-list"></i>
+          </div>
+          <div class="header-text">
+            <h4>Hiển thị tất cả</h4>
+            <p>Chọn các cột bạn muốn hiển thị trên bảng dữ liệu</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="column-options-grid">
+        <div 
+          *ngFor="let column of columnConfig" 
+          class="column-option-card"
+          [class.selected]="column.visible"
+          [class.disabled]="column.alwaysVisible"
+          (click)="!column.alwaysVisible && toggleColumnVisibility(column)">
+          
+          <div class="card-content">
+            <div class="check-icon">
+              <i class="pi" [class.pi-check]="column.visible" [class.pi-circle]="!column.visible"></i>
+            </div>
+            <span class="column-label">{{ column.header }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button 
+          pButton 
+          type="button" 
+          label="Đặt lại mặc định"
+          class="p-button-outlined action-btn reset-btn"
+          (click)="resetColumnVisibility()">
+        </button>
+        <button 
+          pButton 
+          type="button" 
+          label="Thoát"
+          class="p-button-outlined action-btn exit-btn"
+          (click)="showColumnSelector = false">
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Edit User Dialog -->
+  <p-dialog 
+    [(visible)]="showEditDialog" 
+    [modal]="true" 
+    [closable]="true" 
+    [draggable]="false" 
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [dismissableMask]="false"
+    styleClass="edit-user-dialog"
+    [showHeader]="true"
+    header="Sửa thông tin tài khoản"
+    [style]="{width: '600px', 'max-width': '90vw'}"
+    [baseZIndex]="1000">
+    
+    <form [formGroup]="editForm" (ngSubmit)="onSaveEdit()">
+      <div class="grid p-fluid">
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editName">Tên *</label>
+            <input id="editName" type="text" pInputText formControlName="name" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editEmail">Email *</label>
+            <input id="editEmail" type="email" pInputText formControlName="email" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editUserCode">Mã người dùng</label>
+            <input id="editUserCode" type="text" pInputText formControlName="userCode" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editPhoneNumber">Số điện thoại</label>
+            <input id="editPhoneNumber" type="text" pInputText formControlName="phoneNumber" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editPosition">Vị trí</label>
+            <input id="editPosition" type="text" pInputText formControlName="position" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editDob">Ngày sinh</label>
+            <p-calendar id="editDob" formControlName="dob" dateFormat="yy-mm-dd" [showIcon]="true"></p-calendar>
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editBankName">Tên ngân hàng</label>
+            <input id="editBankName" type="text" pInputText formControlName="bankName" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editBankNumber">Số tài khoản</label>
+            <input id="editBankNumber" type="text" pInputText formControlName="bankNumber" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editDepartment">Phòng ban</label>
+            <p-dropdown 
+              id="editDepartment"
+              formControlName="departmentId"
+              [options]="departments"
+              optionLabel="departmentName"
+              optionValue="id"
+              placeholder="Chọn phòng ban"
+              [showClear]="true">
+            </p-dropdown>
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editRole">Vai trò</label>
+            <p-dropdown 
+              id="editRole"
+              formControlName="roleId"
+              [options]="roles"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Chọn vai trò"
+              [showClear]="true">
+            </p-dropdown>
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editDegree">Bằng cấp</label>
+            <input id="editDegree" type="text" pInputText formControlName="degree" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <div class="field">
+            <label for="editAddress">Địa chỉ</label>
+            <input id="editAddress" type="text" pInputText formControlName="address" />
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="field-checkbox">
+            <p-checkbox formControlName="active" [binary]="true" inputId="editActive"></p-checkbox>
+            <label for="editActive">Tài khoản hoạt động</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-content-end gap-3 pt-3">
+        <button 
+          pButton 
+          type="button" 
+          label="Hủy"
+          icon="pi pi-times"
+          class="p-button-outlined dialog-cancel-btn"
+          (click)="onCancelEdit()">
+        </button>
+        <button 
+          pButton 
+          type="submit" 
+          label="Lưu"
+          icon="pi pi-check"
+          class="p-button-primary dialog-submit-btn"
+          [disabled]="editForm.invalid">
+        </button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Loading Dialog -->
+  <p-dialog 
+    [(visible)]="loading" 
+    [modal]="true" 
+    [closable]="false" 
+    [draggable]="false" 
+    [resizable]="false"
+    styleClass="loading-dialog"
+    [showHeader]="false">
+    <div class="loading-content">
+      <div class="loading-spinner">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #3498db;"></i>
+      </div>
+      <div class="loading-text">
+        <h4>Đang tìm kiếm...</h4>
+        <p>Vui lòng chờ trong giây lát</p>
+      </div>
+    </div>
+  </p-dialog>
+</div>

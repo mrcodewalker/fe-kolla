@@ -1,0 +1,373 @@
+<div class="approve-container p-4">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="flex justify-content-between align-items-center mb-4">
+      <div class="flex align-items-center gap-3">
+        <div>
+          <h3 class="m-0 title">Quản lý duyệt thành viên</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section mb-3">
+    <div class="card search-card" [class.loading-overlay]="loading">
+      <div class="card-body p-4">
+        <form [formGroup]="form" (ngSubmit)="onSearch()">
+          <div class="search-row">
+            <!-- Keyword Field -->
+            <div class="field-group">
+              <label for="keyword" class="field-label">
+                <span>Từ khóa</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="keyword" 
+                  type="text" 
+                  pInputText 
+                  formControlName="keyword" 
+                  placeholder="Tên, email, tiêu đề..." 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- User ID Field -->
+            <div class="field-group">
+              <label for="userId" class="field-label">               
+                <span>User ID</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="userId" 
+                  type="number" 
+                  pInputText 
+                  formControlName="userId" 
+                  placeholder="ID người dùng" 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Meeting ID Field -->
+            <div class="field-group">
+              <label for="meetingId" class="field-label">
+                <span>Meeting ID</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="meetingId" 
+                  type="number" 
+                  pInputText 
+                  formControlName="meetingId" 
+                  placeholder="ID cuộc họp" 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Role ID Field -->
+            <div class="field-group">
+              <label for="roleId" class="field-label">
+                <span>Role ID</span>
+              </label>
+              <div class="input-container">
+                <input 
+                  id="roleId" 
+                  type="number" 
+                  pInputText 
+                  formControlName="roleId" 
+                  placeholder="ID vai trò" 
+                  class="input-field" />
+              </div>
+            </div>
+
+            <!-- Status Field -->
+            <div class="field-group">
+              <label for="isActive" class="field-label">
+                <span>Trạng thái</span>
+              </label>
+              <div class="input-container">
+                <p-dropdown 
+                  id="isActive"
+                  formControlName="isActive"
+                  [options]="[
+                    {label: 'Tất cả', value: null},
+                    {label: 'Hoạt động', value: true},
+                    {label: 'Chờ duyệt', value: false}
+                  ]"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn trạng thái"
+                  styleClass="input-field dropdown-field">
+                </p-dropdown>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions-group">
+              <button 
+                pButton 
+                type="button" 
+                label="Làm mới"
+                [disabled]="loading" 
+                class="p-button-outlined p-button-secondary btn-action" 
+                [style]="{'font-weight': '700 !important', 'font-size': '0.875rem !important', 'font-style': 'normal'}"
+                (click)="onClear()">
+              </button>
+              <button 
+                pButton 
+                label="Tìm kiếm" 
+                type="submit" 
+                [disabled]="loading"
+                [loading]="loading"
+                loadingIcon="pi pi-spin pi-spinner"
+                [style]="{'font-weight': '700 !important', 'font-size': '0.875rem !important', 'font-style': 'normal'}"
+                class="p-button-primary btn-action">
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column Settings Section -->
+  <div class="column-settings-section mb-3">
+    <div class="flex justify-content-end">
+      <button 
+        pButton 
+        type="button" 
+        icon="pi pi-cog"
+        label="Tùy chỉnh hiển thị cột"
+        class="p-button-outlined p-button-info"
+        [style]="{'font-weight': '600', 'border-radius': '8px'}"
+        (click)="showColumnSelector = true">
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-wrapper">
+    <p-table
+      #dt
+      [value]="rows"
+      [loading]="loading"
+      [paginator]="true"
+      [lazy]="false"
+      [rows]="size"
+      [totalRecords]="totalRecords"
+      [paginatorPosition]="'top'"
+      [pageLinkSize]="5"
+      [showCurrentPageReport]="true"
+      [currentPageReportTemplate]="'Hiển thị {first} - {last} trong tổng số {totalRecords} bản ghi'"
+      [globalFilterFields]="globalFilterFields"
+      [first]="page * size"
+      (onPage)="onPageChange($event)"
+      (onSort)="onSortChange($event)"
+      styleClass="p-datatable-gridlines small-table p-datatable-scrollable">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th *ngFor="let col of displayedColumns" 
+              [pSortableColumn]="col.field"
+              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'">
+            <div class="th-content">
+              <span class="th-title">{{col.header}}</span>
+              <p-sortIcon [field]="col.field" *ngIf="col.field !== 'actions'"></p-sortIcon>
+            </div>
+          </th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-rowData>
+        <tr>
+          <td *ngFor="let col of displayedColumns" 
+              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'"
+              class="small-text">
+            <ng-container [ngSwitch]="col.field">
+              <!-- Actions Column -->
+              <div *ngSwitchCase="'actions'" class="action-buttons flex gap-2 justify-content-center">
+                <button 
+                  *ngIf="!rowData.active"
+                  pButton
+                  type="button" 
+                  label="Chấp nhận"
+                  icon="pi pi-check"
+                  class="p-button-sm p-button-outlined p-button-success custom-approve-btn"
+                  (click)="approveRequest(rowData)"
+                  title="Chấp nhận yêu cầu">
+                </button>
+                <button 
+                  *ngIf="!rowData.active"
+                  pButton
+                  type="button" 
+                  label="Từ chối"
+                  icon="pi pi-times"
+                  class="p-button-sm p-button-outlined p-button-danger custom-reject-btn"
+                  (click)="rejectRequest(rowData)"
+                  title="Từ chối yêu cầu">
+                </button>
+                <span *ngIf="rowData.active" class="text-success flex align-items-center gap-1">
+                  <i class="pi pi-check-circle text-green-500"></i>
+                  <span class="text-sm font-medium">Đã duyệt</span>
+                </span>
+              </div>
+              <!-- Boolean Column (Trạng thái) -->
+              <span *ngSwitchCase="'active'">
+                <span class="p-tag" [class]="rowData.active ? 'p-tag-success' : 'p-tag-warning'">
+                  {{ rowData.active ? 'Đã duyệt' : 'Chờ duyệt' }}
+                </span>
+              </span>
+              <!-- Date Column -->
+              <span *ngSwitchCase="'createdAt'">
+                {{rowData[col.field] | date:'dd/MM/yyyy HH:mm'}}
+              </span>
+              <!-- Regular Data Columns -->
+              <span *ngSwitchDefault>{{ rowData[col.field] || '-' }}</span>
+            </ng-container>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td [attr.colspan]="displayedColumns.length" class="text-center">
+            Không tìm thấy dữ liệu
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Column Selector Dialog -->
+  <p-dialog 
+    [(visible)]="showColumnSelector" 
+    [modal]="true" 
+    [closable]="true" 
+    [draggable]="false" 
+    [resizable]="false"
+    styleClass="column-selector-dialog rounded-dialog"
+    [showHeader]="true"
+    header="Tùy chỉnh hiển thị cột"
+    [style]="{width: '480px', 'max-width': '90vw', 'border-radius': '12px !important', 'border': '2px solid #9ca3af !important', 'overflow': 'hidden'}">
+    
+    <div class="column-selector-content">
+      <div class="column-options-header mb-3">
+        <h4 class="mb-2" style="color: #0e7490; font-weight: 600;">
+          <i class="pi pi-list mr-2" style="color: #06b6d4;"></i>
+          Hiển thị tất cả
+        </h4>
+        <p class="text-sm text-secondary mb-0">Chọn các cột bạn muốn hiển thị trên bảng dữ liệu</p>
+      </div>
+
+      <div class="column-options-grid">
+        <div 
+          *ngFor="let column of columnConfig" 
+          class="column-option-card"
+          [class.disabled]="column.alwaysVisible"
+          (click)="!column.alwaysVisible && toggleColumnVisibility(column)">
+          
+          <div class="column-option-content">
+            <div class="column-icon">
+              <i class="pi pi-circle" [class.pi-check-circle]="column.visible" 
+                 [style.color]="column.visible ? '#06b6d4' : '#94a3b8'"></i>
+            </div>
+            <div class="column-info">
+              <span class="column-header">{{ column.header }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column-actions mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+        <div class="flex justify-content-between align-items-center gap-3">
+          <button 
+            pButton 
+            type="button" 
+            label="Đặt lại mặc định"
+            class="p-button-outlined dialog-action-btn"
+            [style]="{'font-weight': '600', 'border-radius': '6px', 'flex': '1'}"
+            (click)="resetColumnVisibility()">
+          </button>
+          <button 
+            pButton 
+            type="button" 
+            label="Thoát"
+            class="p-button-outlined dialog-action-btn"
+            [style]="{'font-weight': '600', 'border-radius': '6px', 'flex': '1'}"
+            (click)="showColumnSelector = false">
+          </button>
+        </div>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Loading Dialog -->
+  <p-dialog 
+    [(visible)]="loading" 
+    [modal]="true" 
+    [closable]="false" 
+    [draggable]="false" 
+    [resizable]="false"
+    styleClass="loading-dialog"
+    [showHeader]="false">
+    <div class="loading-content">
+      <div class="loading-spinner">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #3498db;"></i>
+      </div>
+      <div class="loading-text">
+        <h4>Đang tìm kiếm...</h4>
+        <p>Vui lòng chờ trong giây lát</p>
+      </div>
+    </div>
+  </p-dialog>
+</div>
+
+<!-- Templates for custom columns -->
+<!-- Default cell template -->
+<ng-template #defaultTemplate let-row="row" let-col="col">
+  {{ getValue(row, col.field) }}
+</ng-template>
+
+<!-- Status template -->
+<ng-template #statusTemplate let-row="row">
+  <p-tag 
+    [value]="row.status === 'active' ? 'Hoạt động' : 'Không hoạt động'"
+    [severity]="row.status === 'active' ? 'success' : 'warning'">
+  </p-tag>
+</ng-template>
+
+<!-- Approval Status template -->
+<ng-template #approvalStatusTemplate let-row="row">
+  <p-tag 
+    [value]="row.approval_status === 'pending' ? 'Chờ duyệt' : 
+             row.approval_status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'"
+    [severity]="row.approval_status === 'pending' ? 'warning' : 
+                row.approval_status === 'approved' ? 'success' : 'danger'">
+  </p-tag>
+</ng-template>
+
+<!-- Action buttons template -->
+<ng-template #actionTemplate let-row="row">
+  <div class="action-buttons">
+    <button 
+      pButton 
+      type="button" 
+      class="p-button-sm p-button-rounded approve-btn"
+      label="Chấp nhận"
+      icon="pi pi-check"
+      (click)="approveMember(row)"
+      [disabled]="loading">
+    </button>
+    <button 
+      pButton 
+      type="button" 
+      class="p-button-sm p-button-rounded reject-btn"
+      label="Từ chối"
+      icon="pi pi-times"
+      (click)="rejectMember(row)"
+      [disabled]="loading">
+    </button>
+  </div>
+</ng-template>

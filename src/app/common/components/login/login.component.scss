@@ -1,0 +1,235 @@
+.login-container {
+  @apply min-h-screen relative overflow-hidden;
+  background: linear-gradient(-45deg, #3490dc, #6366f1, #4f46e5, #2563eb);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+
+  &::before {
+    content: '';
+    @apply absolute inset-0;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 50% 100%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 0%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0.2; }
+  100% { transform: scale(1); opacity: 0.5; }
+}
+
+.login-card {
+  @apply backdrop-blur-sm bg-white/90;
+  transform-style: preserve-3d;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    @apply shadow-2xl;
+  }
+}
+
+.form-input-container {
+  @apply relative;
+
+  .input-icon {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10;
+    transition: all 0.3s ease;
+  }
+
+  .form-input {
+    @apply transition-all duration-300 ease-in-out pl-10;
+    background: rgba(255, 255, 255, 0.9);
+    
+    &:focus {
+      @apply ring-2 ring-blue-500 ring-offset-2 bg-white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      & + .input-icon {
+        @apply text-blue-500;
+        transform: translate(0, -50%) scale(1.1);
+      }
+    }
+
+    &:hover {
+      @apply bg-white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.login-button {
+  @apply relative overflow-hidden transition-all duration-300;
+  
+  &::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 transform scale-x-0 origin-left transition-transform duration-300;
+  }
+  
+  &:hover::after {
+    @apply scale-x-100;
+  }
+}
+
+// Logo Styling
+.logo-container {
+  @apply relative;
+  
+  .logo-wrapper {
+    @apply relative inline-block;
+    
+    .logo-glow {
+      @apply absolute inset-0 rounded-full;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      animation: glow 3s ease-in-out infinite alternate;
+      filter: blur(20px);
+      transform: scale(1.2);
+    }
+    
+    .logo-animation {
+      @apply relative z-10;
+      animation: float 6s ease-in-out infinite;
+      
+      .logo-image {
+        @apply w-24 h-24 object-contain drop-shadow-2xl;
+        filter: drop-shadow(0 10px 25px rgba(59, 130, 246, 0.3));
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05) rotate(2deg);
+          filter: drop-shadow(0 15px 35px rgba(59, 130, 246, 0.5));
+        }
+      }
+    }
+    
+    .logo-particles {
+      @apply absolute inset-0 pointer-events-none;
+      
+      .particle {
+        @apply absolute w-2 h-2 bg-blue-400 rounded-full;
+        animation: particle-float 4s ease-in-out infinite;
+        
+        &.particle-1 {
+          top: -10px;
+          left: 20%;
+          animation-delay: 0s;
+          animation-duration: 3s;
+        }
+        
+        &.particle-2 {
+          top: -5px;
+          right: 15%;
+          animation-delay: 0.5s;
+          animation-duration: 3.5s;
+        }
+        
+        &.particle-3 {
+          bottom: -15px;
+          left: 30%;
+          animation-delay: 1s;
+          animation-duration: 4s;
+        }
+        
+        &.particle-4 {
+          bottom: -8px;
+          right: 25%;
+          animation-delay: 1.5s;
+          animation-duration: 3.2s;
+        }
+        
+        &.particle-5 {
+          top: 50%;
+          right: -20px;
+          animation-delay: 2s;
+          animation-duration: 3.8s;
+        }
+      }
+    }
+  }
+  
+  .logo-text {
+    @apply mt-4;
+    
+    .brand-name {
+      @apply text-2xl font-black text-transparent bg-clip-text;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8, #1e40af);
+      letter-spacing: 0.2em;
+      animation: text-glow 2s ease-in-out infinite alternate;
+    }
+    
+    .brand-tagline {
+      @apply text-sm text-gray-500 font-medium mt-1;
+      letter-spacing: 0.1em;
+      animation: fade-in-up 0.8s ease-out 0.5s both;
+    }
+  }
+}
+
+@keyframes glow {
+  0% { 
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+  100% { 
+    opacity: 0.8;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes particle-float {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+    opacity: 0.7;
+  }
+  50% { 
+    transform: translateY(-15px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes text-glow {
+  0% { 
+    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.3));
+  }
+  100% { 
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.error-message {
+  animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}

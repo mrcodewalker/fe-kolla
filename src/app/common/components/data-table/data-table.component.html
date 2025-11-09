@@ -1,0 +1,71 @@
+<p-table
+  #dt
+  [value]="data"
+  [columns]="columns"
+  [loading]="loading"
+  [paginator]="paginator"
+  [lazy]="lazy"
+  [rows]="rows"
+  [totalRecords]="totalRecords"
+  [rowsPerPageOptions]="rowsPerPageOptions"
+  [paginatorPosition]="paginatorPosition"
+  [pageLinkSize]="pageLinkSize"
+  [showCurrentPageReport]="showCurrentPageReport"
+  [currentPageReportTemplate]="currentPageReportTemplate"
+  [paginatorDropdownAppendTo]="paginatorDropdownAppendTo"
+  [globalFilterFields]="globalFilterFields"
+  [(selection)]="selectedItems"
+  [first]="first"
+  (onPage)="onPageChange($event)"
+  (onSort)="onSortChange($event)"
+  (onFilter)="onFilterChange($event)"
+  (onRowSelect)="onRowSelection($event)"
+  (onRowUnselect)="onRowUnselection($event)"
+  styleClass="p-datatable-gridlines">
+  
+  <!-- No caption; controls moved into paginator area -->
+
+  <ng-template pTemplate="header">
+    <tr>
+      <th *ngFor="let col of columns" [pSortableColumn]="col.field">
+        <div class="th-content">
+          <span class="th-title">{{col.header}}</span>
+          <p-sortIcon [field]="col.field"></p-sortIcon>
+        </div>
+      </th>
+    </tr>
+  </ng-template>
+
+  <!-- Empty paginator right section - no rows per page dropdown -->
+  <ng-template pTemplate="paginatorright">
+    <div class="flex align-items-center gap-2">
+      <!-- Removed rows per page dropdown -->
+    </div>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-rowData>
+    <tr [pSelectableRow]="rowData">
+      <td *ngFor="let col of columns">
+        <ng-container [ngSwitch]="col.type">
+          <span *ngSwitchCase="'date'">
+            {{rowData[col.field] | date:col.format || 'short'}}
+          </span>
+          <span *ngSwitchCase="'currency'">
+            {{rowData[col.field] | currency:col.currency || 'USD'}}
+          </span>
+          <span *ngSwitchDefault>
+            {{rowData[col.field]}}
+          </span>
+        </ng-container>
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td [attr.colspan]="columns.length" class="text-center">
+        No records found
+      </td>
+    </tr>
+  </ng-template>
+</p-table>

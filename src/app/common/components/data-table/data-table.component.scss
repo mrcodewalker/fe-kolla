@@ -1,0 +1,235 @@
+:host ::ng-deep {
+  .p-datatable {
+    border: 1px solid #dcdfe3;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .p-datatable-header {
+      padding: 1rem;
+      background: #f3f6fb;
+      border-bottom: 1px solid #dcdfe3;
+    }
+
+    .p-datatable-thead > tr > th {
+      padding: 0.875rem 1rem;
+      text-align: left;
+      border: 1px solid #dcdfe3;
+      font-weight: 700;
+      color: #2a2e36;
+      background: #f7f9fc;
+
+      .th-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        line-height: 1.25rem;
+      }
+      .th-title {
+        display: inline-block;
+      }
+      .p-sortable-column-icon,
+      p-sorticon, .p-sortIcon {
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+
+    .p-datatable-tbody > tr > td {
+      padding: 0.875rem 1rem;
+      border: 1px solid #e3e6eb;
+    }
+
+    .p-datatable-footer {
+      padding: 1rem;
+      background: #f7f9fc;
+      border-top: 1px solid #dcdfe3;
+    }
+
+    .p-column-filter {
+      width: 100%;
+    }
+
+    .p-datatable-tbody > tr {
+      transition: background-color 0.15s ease;
+    }
+
+    .p-datatable-tbody > tr:hover {
+      background: #f2f7ff;
+    }
+
+    .p-sortable-column.p-highlight {
+      background: #eef3ff;
+      color: #1f5eff;
+    }
+    .p-sortable-column .p-sortable-column-icon,
+    .p-sortable-column.p-highlight .p-sortable-column-icon {
+      color: #1f5eff;
+    }
+  }
+
+  /* Paginator styling */
+  .p-paginator {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dcdfe3;
+    justify-content: flex-start;
+    gap: 0.5rem;
+
+    /* Hide default rows-per-page selector (we use custom in caption) */
+    .p-paginator-rpp-options {
+      display: none;
+    }
+
+    .p-paginator-pages .p-paginator-page {
+      min-width: 2.25rem;
+      height: 2.25rem;
+      padding: 0 0.5rem;
+      font-size: 0.95rem;
+      border-radius: 6px;
+    }
+
+    .p-paginator-pages .p-paginator-page.p-highlight {
+      background: #1f5eff;
+      border-color: #1f5eff;
+      color: #fff;
+    }
+
+    .p-paginator-first, .p-paginator-prev, .p-paginator-next, .p-paginator-last {
+      min-width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 6px;
+    }
+
+    .p-dropdown {
+      min-width: 8rem;
+      height: 2.5rem;
+      background: #ffffff;
+      border: 1px solid #cfd4dc; /* override any dark/black border */
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+      /* Prevent unexpected black outline/border on focus/hover/open */
+      &:focus,
+      &:focus-visible {
+        outline: none;
+      }
+      &:hover {
+        border-color: #94a3b8;
+      }
+      &.p-dropdown-open {
+        border-color: #1f5eff;
+        box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.15);
+      }
+
+      .p-dropdown-label {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.95rem;
+        color: #111827;
+      }
+
+      .p-dropdown-trigger {
+        width: 2.25rem;
+        border-left: 1px solid #e5e7eb;
+        .p-dropdown-trigger-icon {
+          color: #475569;
+          font-size: 0.9rem;
+        }
+      }
+
+      &.p-focus {
+        border-color: #1f5eff;
+        box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.15);
+      }
+    }
+    /* Ensure when wrapper adds focus class, dropdown reflects our focus styles */
+    .p-inputwrapper-focus .p-dropdown {
+      border-color: #1f5eff;
+      box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.15);
+    }
+    .p-paginator-right {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+
+  /* Dropdown panel styling */
+  .p-dropdown-panel {
+    border: 1px solid #d0d7e2;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(2, 6, 23, 0.12), 0 3px 6px rgba(2, 6, 23, 0.08);
+    overflow: hidden;
+    background: #ffffff;
+
+    .p-dropdown-items {
+      padding: 0.25rem;
+    }
+    .p-dropdown-item {
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      margin: 2px;
+      font-size: 1rem; /* make numbers easier to read */
+      color: #111827;
+      transition: background-color 0.12s ease, color 0.12s ease;
+
+      &:hover {
+        background: #f2f7ff;
+      }
+      &.p-highlight {
+        background: #1f5eff;
+        color: #ffffff;
+      }
+    }
+  }
+
+  /* Explicit class for the RPP dropdown panel */
+  .rpp-panel {
+    background: #ffffff;
+    border: 1px solid #d0d7e2;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(2, 6, 23, 0.12), 0 3px 6px rgba(2, 6, 23, 0.08);
+    .p-dropdown-items { padding: 0.25rem; }
+    .p-dropdown-item {
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      margin: 2px;
+      font-size: 1rem;
+      color: #111827;
+      transition: background-color 0.12s ease, color 0.12s ease;
+      &:hover { background: #f2f7ff; }
+      &.p-highlight { background: #1f5eff; color: #ffffff; }
+    }
+  }
+
+  /* Custom rows-per-page dropdown in caption */
+  .rpp-dropdown.p-dropdown {
+    min-width: 10rem;
+    height: 2.5rem;
+    background: #ffffff;
+    border: 1px solid #cfd4dc; /* prevent black border */
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    .p-dropdown-label {
+      padding: 0.5rem 0.75rem;
+      font-size: 1rem; /* bump label size */
+      color: #111827;
+    }
+    .p-dropdown-trigger {
+      width: 2.25rem;
+      border-left: 1px solid #e5e7eb;
+      .p-dropdown-trigger-icon { color: #475569; font-size: 0.9rem; }
+    }
+    &:hover { border-color: #94a3b8; }
+    &.p-focus { border-color: #1f5eff; box-shadow: 0 0 0 3px rgba(31,94,255,0.15); }
+  }
+  .p-input-icon-left {
+    width: 300px;
+
+    input {
+      width: 100%;
+    }
+  }
+}
