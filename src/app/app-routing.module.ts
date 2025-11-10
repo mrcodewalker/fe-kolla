@@ -17,6 +17,7 @@ import { DepartmentsComponent } from './common/components/departments/department
 import { ManagementComponent } from './common/components/management/management.component';
 import { SuperviseComponent } from './common/components/supervise/supervise.component';
 import { JoinHistoryComponent } from './common/components/join-history/join-history.component';
+import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
 
 
 const routes: Routes = [
@@ -80,7 +81,8 @@ const routes: Routes = [
     { path: 'departments', component: DepartmentsComponent, canActivate: [AuthGuard] },
     { path: 'management', component: ManagementComponent, canActivate: [AuthGuard] },
     { path: 'supervise', component: SuperviseComponent, canActivate: [AuthGuard] },
-    { path: 'join-history', component: JoinHistoryComponent, canActivate: [AuthGuard] }
+    { path: 'join-history', component: JoinHistoryComponent, canActivate: [AuthGuard] },
+    { path: 'join-history-management', component: JoinHistoryManagementComponent, canActivate: [AuthGuard] }
   ]
 },
   { path: '**', redirectTo: 'login' }

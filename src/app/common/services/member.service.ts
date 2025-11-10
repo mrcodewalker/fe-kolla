@@ -72,4 +72,16 @@ export class MemberService {
   rejectMembers(request: RejectRequest): Observable<MembershipResponse> {
     return this.http.post<MembershipResponse>(`${this.apiUrl}/reject`, request);
   }
+
+  inviteMembers(inviteRequest: {
+    meetingId: number;
+    members: Array<{
+      userId: number;
+      roleId: number;
+    }>;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/invite`, inviteRequest);
+  }
+
+  
 }

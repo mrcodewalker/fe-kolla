@@ -13,6 +13,7 @@ interface ColumnConfig {
   visible: boolean;
   defaultVisible: boolean;
   alwaysVisible?: boolean;
+  sortable?: boolean;
 }
 
 @Component({
@@ -89,7 +90,8 @@ export class ManagementComponent implements OnInit {
       header: 'Vị trí', 
       filterType: 'text', 
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      sortable: false
     },
     { 
       field: 'role', 
@@ -124,14 +126,16 @@ export class ManagementComponent implements OnInit {
       header: 'Trạng thái', 
       filterType: 'text', 
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      sortable: false
     },
     { 
       field: 'actions', 
       header: 'Thao tác', 
       visible: true, 
       defaultVisible: true, 
-      alwaysVisible: true 
+      alwaysVisible: true,
+      sortable: false
     }
   ];
 

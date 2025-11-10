@@ -83,7 +83,7 @@ export class DepartmentsComponent implements OnInit {
     private departmentService: DepartmentService
   ) {
     this.form = this.fb.group({
-      id: ['']
+      name: ['']
     });
 
     this.addDepartmentForm = this.fb.group({
@@ -154,7 +154,7 @@ export class DepartmentsComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      id: ''
+      name: ''
     });
     this.page = 0;
     this.loadData();
@@ -176,46 +176,64 @@ export class DepartmentsComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { id } = this.form.value;
+    const { name } = this.form.value;
     
-    const searchParams: DepartmentSearchParams = {
-      sortBy: this.sortBy,
-      sortDirection: this.sortDirection
-    };
-
-    // Add search parameters if they have values
-    if (id !== undefined && id !== null && id !== '') {
-      searchParams.id = parseInt(id);
-    }
-
-    console.log('Search Params:', searchParams);
-
-    this.departmentService.searchDepartments(searchParams).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          let data = res.data;
-          
-          // Client-side filtering by ID if provided
-          if (searchParams.id) {
-            data = data.filter(item => item.id === searchParams.id);
+    // If no search term, load all departments
+    if (!name || name.trim() === '') {
+      console.log('Loading all departments...');
+      this.departmentService.getAllDepartments().subscribe({
+        next: (res) => {
+          console.log('All Departments Response:', res);
+          if (res.success && res.data) {
+            this.rows = res.data;
+            this.applySortingAndPagination();
+          } else {
+            this.rows = [];
+            this.filteredRows = [];
+            this.totalRecords = 0;
           }
-          
-          this.rows = data;
-          this.applySortingAndPagination();
-        } else {
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error loading all departments:', error);
           this.rows = [];
           this.filteredRows = [];
           this.totalRecords = 0;
+          this.loading = false;
         }
-        this.loading = false;
-      },
-      error: () => {
-        this.rows = [];
-        this.filteredRows = [];
-        this.totalRecords = 0;
-        this.loading = false;
-      }
-    });
+      });
+    } else {
+      // Search with name parameter
+      const searchParams: DepartmentSearchParams = {
+        name: name.trim(),
+        sortBy: this.sortBy,
+        sortDirection: this.sortDirection
+      };
+
+      console.log('Search Params:', searchParams);
+
+      this.departmentService.searchDepartments(searchParams).subscribe({
+        next: (res) => {
+          console.log('Search Response:', res);
+          if (res.success && res.data) {
+            this.rows = res.data;
+            this.applySortingAndPagination();
+          } else {
+            this.rows = [];
+            this.filteredRows = [];
+            this.totalRecords = 0;
+          }
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error searching departments:', error);
+          this.rows = [];
+          this.filteredRows = [];
+          this.totalRecords = 0;
+          this.loading = false;
+        }
+      });
+    }
   }
 
   private applySortingAndPagination(): void {

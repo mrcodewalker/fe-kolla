@@ -1,10 +1,10 @@
-<div class="supervise-container p-4">
+<div class="join-history-management-container p-4">
   <!-- Header Section -->
   <div class="header-section">
     <div class="flex justify-content-between align-items-center mb-4">
       <div class="flex align-items-center gap-3">
         <div>
-          <h3 class="m-0 title">Giám sát đăng nhập</h3>
+          <h3 class="m-0 title">Lịch sử tham gia</h3>
         </div>
       </div>
     </div>
@@ -27,7 +27,7 @@
                   type="text" 
                   pInputText 
                   formControlName="keyword" 
-                  placeholder="Tìm kiếm theo thiết bị, IP, vị trí, hành động, tên, email..." 
+                  placeholder="Tìm kiếm theo thiết bị, IP, vị trí, tên người dùng..." 
                   class="input-field" />
               </div>
             </div>
@@ -35,7 +35,7 @@
             <!-- Start Date Field -->
             <div class="field-group">
               <label for="startDate" class="field-label">               
-                <span>Ngày đăng nhập</span>
+                <span>Ngày bắt đầu</span>
               </label>
               <div class="input-container">
                 <p-calendar 
@@ -43,14 +43,20 @@
                   formControlName="startDate"
                   [showTime]="false"
                   dateFormat="dd/mm/yy"
-                  placeholder="Chọn ngày đăng nhập"
-                  [showIcon]="true"
-                  [iconDisplay]="'input'"
-                  icon="pi pi-calendar"
-                  [appendTo]="'body'"
-                  [touchUI]="false"
-                  [readonlyInput]="false"
-                  styleClass="input-field date-field">
+                  placeholder="Chọn ngày bắt đầu"
+                  [showIcon]="calendarConfig.showIcon"
+                  [iconDisplay]="calendarConfig.iconDisplay"
+                  [icon]="calendarConfig.icon"
+                  [appendTo]="calendarConfig.appendTo"
+                  [touchUI]="calendarConfig.touchUI"
+                  [readonlyInput]="calendarConfig.readonlyInput"
+                  [showClear]="calendarConfig.showClear"
+                  [keepInvalid]="calendarConfig.keepInvalid"
+                  [hideOnDateTimeSelect]="calendarConfig.hideOnDateTimeSelect"
+                  [showButtonBar]="calendarConfig.showButtonBar"
+                  [dataType]="'date'"
+                  [manualInput]="true"
+                  styleClass="input-field date-field calendar-no-duplicate calendar-fix">
                 </p-calendar>
               </div>
             </div>
@@ -58,7 +64,7 @@
             <!-- End Date Field -->
             <div class="field-group">
               <label for="endDate" class="field-label">
-                <span>Ngày đăng xuất</span>
+                <span>Ngày kết thúc</span>
               </label>
               <div class="input-container">
                 <p-calendar 
@@ -66,39 +72,43 @@
                   formControlName="endDate"
                   [showTime]="false"
                   dateFormat="dd/mm/yy"
-                  placeholder="Chọn ngày đăng xuất"
-                  [showIcon]="true"
-                  [iconDisplay]="'input'"
-                  icon="pi pi-calendar"
-                  [appendTo]="'body'"
-                  [touchUI]="false"
-                  [readonlyInput]="false"
-                  styleClass="input-field date-field">
+                  placeholder="Chọn ngày kết thúc"
+                  [showIcon]="calendarConfig.showIcon"
+                  [iconDisplay]="calendarConfig.iconDisplay"
+                  [icon]="calendarConfig.icon"
+                  [appendTo]="calendarConfig.appendTo"
+                  [touchUI]="calendarConfig.touchUI"
+                  [readonlyInput]="calendarConfig.readonlyInput"
+                  [showClear]="calendarConfig.showClear"
+                  [keepInvalid]="calendarConfig.keepInvalid"
+                  [hideOnDateTimeSelect]="calendarConfig.hideOnDateTimeSelect"
+                  [showButtonBar]="calendarConfig.showButtonBar"
+                  [dataType]="'date'"
+                  [manualInput]="true"
+                  styleClass="input-field date-field calendar-no-duplicate calendar-fix">
                 </p-calendar>
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="actions-group">
-              <button 
-                pButton 
-                type="button" 
+              <button
+                pButton
+                type="button"
                 label="Làm mới"
-                [disabled]="loading" 
-                class="p-button-outlined p-button-secondary btn-action" 
-                [style]="{'font-weight': '700 !important', 'font-style': 'normal', 'font-size': '0.875rem !important'}"
-                (click)="onClear()">
-              </button>
-              <button 
-                pButton 
-                label="Tìm kiếm" 
-                type="submit" 
+                [disabled]="loading"
+                class="p-button-outlined p-button-secondary btn-action custom-refresh-btn"
+                (click)="onClear()"
+              ></button>
+              <button
+                pButton
+                label="Tìm kiếm"
+                type="submit"
                 [disabled]="loading"
                 [loading]="loading"
                 loadingIcon="pi pi-spin pi-spinner"
-                [style]="{'font-weight': '700 !important', 'font-style': 'normal', 'font-size': '0.875rem !important'}"
-                class="p-button-primary btn-action">
-              </button>
+                class="p-button-primary btn-action custom-search-btn"
+              ></button>
             </div>
           </div>
         </form>
@@ -164,6 +174,11 @@
           *ngFor="let column of columnConfig" 
           class="column-option-card"
           [class.disabled]="column.alwaysVisible"
+          [attr.data-selected]="column.visible && !column.alwaysVisible"
+          [style.background]="column.visible && !column.alwaysVisible ? '#e0f7fa !important' : '#ffffff !important'"
+          [style.border-color]="column.visible && !column.alwaysVisible ? '#06b6d4 !important' : '#e5e7eb !important'"
+          [style.border-width]="column.visible && !column.alwaysVisible ? '2px !important' : '2px !important'"
+          [style.box-shadow]="column.visible && !column.alwaysVisible ? '0 2px 8px rgba(6, 182, 212, 0.2) !important' : 'none'"
           (click)="!column.alwaysVisible && toggleColumnVisibility(column)">
           
           <div class="column-option-content">
@@ -172,7 +187,9 @@
                  [style.color]="column.visible ? '#06b6d4' : '#94a3b8'"></i>
             </div>
             <div class="column-info">
-              <span class="column-header">{{ column.header }}</span>
+              <span class="column-header" 
+                    [style.color]="column.visible && !column.alwaysVisible ? '#0e7490 !important' : '#374151 !important'"
+                    [style.font-weight]="column.visible && !column.alwaysVisible ? '600 !important' : '600 !important'">{{ column.header }}</span>
             </div>
           </div>
         </div>
@@ -202,7 +219,7 @@
   </p-dialog>
 
   <!-- Loading Dialog -->
-  <p-dialog 
+  <!-- <p-dialog 
     [(visible)]="loading" 
     [modal]="true" 
     [closable]="false" 
@@ -219,5 +236,5 @@
         <p>Vui lòng chờ trong giây lát</p>
       </div>
     </div>
-  </p-dialog>
+  </p-dialog> -->
 </div>

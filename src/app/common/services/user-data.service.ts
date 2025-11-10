@@ -21,4 +21,12 @@ export class UserDataService extends BaseService<User> {
   updateProfile(profileData: Partial<User>): Observable<any> {
     return this.http.put(`${environment.apiUrl}/users/me/profile`, profileData);
   }
+
+  searchBasic(query: string): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/users/search-basic`, {
+      params: { q: query }
+    });
+  }
+
+  
 }

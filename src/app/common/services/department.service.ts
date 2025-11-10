@@ -10,6 +10,7 @@ export interface DepartmentItem {
 }
 
 export interface DepartmentSearchParams {
+  name?: string;
   id?: number;
   page?: number;
   size?: number;
@@ -59,12 +60,11 @@ export class DepartmentService {
     let httpParams = new HttpParams();
 
     // Add search parameters if they have values
-    if (params.id !== undefined && params.id !== null) {
-      httpParams = httpParams.set('id', params.id.toString());
+    if (params.name !== undefined && params.name !== null && params.name.trim() !== '') {
+      httpParams = httpParams.set('name', params.name.trim());
     }
 
-    // Note: Since the API returns simple array, we handle pagination client-side
-    return this.http.get<DepartmentResponse>(`${this.apiUrl}`, { params: httpParams });
+    return this.http.get<DepartmentResponse>(`${this.apiUrl}/search`, { params: httpParams });
   }
 
   createDepartment(department: CreateDepartmentRequest): Observable<any> {
@@ -78,4 +78,6 @@ export class DepartmentService {
   deleteDepartment(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
+
+
 }

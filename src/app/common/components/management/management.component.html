@@ -274,7 +274,7 @@
         <tr>
           <th
             *ngFor="let col of displayedColumns"
-            [pSortableColumn]="col.field"
+            [pSortableColumn]="col.sortable !== false ? col.field : undefined"
             [style.width]="col.field === 'actions' ? '180px' : 'auto'"
             [style.min-width]="col.field === 'actions' ? '180px' : 'auto'"
           >
@@ -282,7 +282,7 @@
               <span class="th-title">{{ col.header }}</span>
               <p-sortIcon
                 [field]="col.field"
-                *ngIf="col.field !== 'actions'"
+                *ngIf="col.sortable !== false"
               ></p-sortIcon>
             </div>
           </th>

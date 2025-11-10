@@ -27,10 +27,10 @@
 
   <ng-template pTemplate="header">
     <tr>
-      <th *ngFor="let col of columns" [pSortableColumn]="col.field">
+      <th *ngFor="let col of columns" [pSortableColumn]="col.sortable !== false ? col.field : null">
         <div class="th-content">
           <span class="th-title">{{col.header}}</span>
-          <p-sortIcon [field]="col.field"></p-sortIcon>
+          <p-sortIcon *ngIf="col.sortable !== false" [field]="col.field"></p-sortIcon>
         </div>
       </th>
     </tr>

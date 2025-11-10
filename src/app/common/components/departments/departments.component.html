@@ -16,18 +16,18 @@
       <div class="card-body p-4">
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <div class="search-row">
-            <!-- ID Field -->
+            <!-- Name Field -->
             <div class="field-group">
-              <label for="id" class="field-label">
-                <span>ID Phòng ban</span>
+              <label for="name" class="field-label">
+                <span>Tên Phòng ban</span>
               </label>
               <div class="input-container">
                 <input
-                  id="id"
-                  type="number"
+                  id="name"
+                  type="text"
                   pInputText
-                  formControlName="id"
-                  placeholder="Nhập ID phòng ban..."
+                  formControlName="name"
+                  placeholder="Nhập tên phòng ban..."
                   class="input-field"
                 />
               </div>

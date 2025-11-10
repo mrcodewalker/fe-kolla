@@ -1,0 +1,233 @@
+/* COLUMN DIALOG STYLING - GLOBAL OVERRIDE */
+/* This file contains styles with maximum priority to override PrimeNG defaults */
+
+/* Dialog container */
+.column-selector-dialog .p-dialog {
+  background: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  border: 2px solid #9ca3af !important;
+  overflow: hidden !important;
+}
+
+/* Dialog header */
+.column-selector-dialog .p-dialog-header {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-bottom: none !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .p-dialog-title {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: white !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .p-dialog-header-close {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .p-dialog-header-close:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dialog content */
+.column-selector-dialog .p-dialog-content {
+  background: #f8fafc !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  padding: 0 !important;
+}
+
+/* Content container */
+.column-selector-dialog .column-selector-content {
+  background: #f8fafc !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  padding: 1rem !important;
+}
+
+/* Header section */
+.column-selector-dialog .column-options-header {
+  text-align: center !important;
+  margin-bottom: 1rem !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .column-options-header h4 {
+  color: #0e7490 !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem !important;
+  margin-bottom: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .column-options-header p {
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+}
+
+/* Options grid */
+.column-selector-dialog .column-options-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 0.75rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Option cards - default state */
+.column-selector-dialog .column-option-card {
+  background: #ffffff !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 0.75rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Option cards - hover state */
+.column-selector-dialog .column-option-card:hover:not(.disabled) {
+  border-color: #06b6d4 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15) !important;
+}
+
+/* Option cards - selected state */
+.column-selector-dialog .column-option-card[data-selected="true"] {
+  border-color: #06b6d4 !important;
+  border-width: 2px !important;
+  background: #e0f7fa !important;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2) !important;
+}
+
+.column-selector-dialog .column-option-card[data-selected="true"] .column-header {
+  color: #0e7490 !important;
+  font-weight: 600 !important;
+}
+
+.column-selector-dialog .column-option-card[data-selected="true"] .column-icon i {
+  color: #06b6d4 !important;
+}
+
+/* Option cards - disabled state */
+.column-selector-dialog .column-option-card.disabled {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+.column-selector-dialog .column-option-card.disabled .column-option-content {
+  opacity: 0.6 !important;
+}
+
+.column-selector-dialog .column-option-card.disabled .column-header {
+  color: #9ca3af !important;
+}
+
+/* Option content */
+.column-selector-dialog .column-option-content {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.75rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.column-selector-dialog .column-icon {
+  flex-shrink: 0 !important;
+  margin-top: 0.125rem !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .column-icon i {
+  font-size: 1.25rem !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .column-info {
+  flex: 1 !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .column-header {
+  display: block !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  font-size: 0.875rem !important;
+  margin-bottom: 0.25rem !important;
+  line-height: 1.4 !important;
+  opacity: 1 !important;
+}
+
+/* Action buttons section */
+.column-selector-dialog .column-actions {
+  border-top: 1px solid #e5e7eb !important;
+  padding-top: 1rem !important;
+  margin-top: 1rem !important;
+  background: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.column-selector-dialog .dialog-action-btn {
+  color: #6b7280 !important;
+  border-color: #d1d5db !important;
+  background: #ffffff !important;
+  height: 2.5rem !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.column-selector-dialog .dialog-action-btn:hover {
+  color: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  background: #f0f9ff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15) !important;
+}
+
+.column-selector-dialog .dialog-action-btn:focus {
+  color: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  background: #f0f9ff !important;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* Additional selectors for PrimeNG override */
+.p-dialog.column-selector-dialog .p-dialog-content,
+.p-dialog.column-selector-dialog .column-selector-content,
+.p-dialog.column-selector-dialog .column-options-grid,
+.p-dialog.column-selector-dialog .column-option-card {
+  background: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.p-dialog.column-selector-dialog .p-dialog-content {
+  background: #f8fafc !important;
+}
+
+.p-dialog.column-selector-dialog .column-selector-content {
+  background: #f8fafc !important;
+}

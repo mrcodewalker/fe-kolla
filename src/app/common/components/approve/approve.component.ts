@@ -15,6 +15,7 @@ interface ColumnConfig {
   visible: boolean;
   defaultVisible: boolean;
   alwaysVisible?: boolean;
+  sortable?: boolean;
 }
 @Component({
   selector: 'app-approve',
@@ -58,7 +59,8 @@ export class ApproveComponent implements OnInit {
       header: 'Tên người dùng', 
       filterType: 'text', 
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      sortable: false
     },
     { 
       field: 'userEmail', 
@@ -79,7 +81,8 @@ export class ApproveComponent implements OnInit {
       header: 'Mã cuộc họp', 
       filterType: 'text', 
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      sortable: false
     },
     { 
       field: 'roleName', 
@@ -101,14 +104,16 @@ export class ApproveComponent implements OnInit {
       header: 'Trạng thái', 
       type: 'boolean', 
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      sortable: false
     },
     { 
       field: 'actions', 
       header: 'Thao tác', 
       visible: true, 
       defaultVisible: true, 
-      alwaysVisible: true 
+      alwaysVisible: true,
+      sortable: false
     }
   ];
 

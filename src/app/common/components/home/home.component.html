@@ -145,6 +145,21 @@
       </div>
     </a>
 
+    <a
+      *ngIf="user?.role === 'ADMIN'"
+      routerLink="/home/join-history-management"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+      title="Quản lí lịch sử họp"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-list-check text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center line-clamp-1">Quản lí lịch sử họp</p>
+        </div>
+      </div>
+    </a>
+
     <!-- <a *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'" routerLink="/home/documents" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
             class="flex justify-center hover:bg-white w-full">
             <div class="flex flex-col items-center justify-center h-full">

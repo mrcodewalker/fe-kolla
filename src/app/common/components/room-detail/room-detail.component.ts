@@ -5,6 +5,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { RoomDataService } from '../../services/room-data.service';
+import { UserDataService } from '../../services/user-data.service';
 import { MeetingService } from '../../services/meeting.service';
 import { MemberService } from '../../services/member.service';
 import { AuthService } from '../../services/auth.service';
@@ -44,6 +45,13 @@ export class RoomDetailComponent implements OnInit {
     { id: 3, name: 'SECRETARY' },
     { id: 4, name: 'CO_ADMIN' }
   ];
+
+  // Add member modal properties
+  showAddMemberModal: boolean = false;
+  searchUserQuery: string = '';
+  searchUserResults: any[] = [];
+  selectedUsersForAdd: any[] = [];
+  isAllSearchedUsersSelected: boolean = false;
 
   documents: Array<{ name: string; url: string }> = [
     { name: 'Biên bản họp.pdf', url: '#' },
@@ -89,7 +97,7 @@ export class RoomDetailComponent implements OnInit {
   showConfirmDialog: boolean = false;
   confirmDialogTitle: string = '';
   confirmDialogMessage: string = '';
-  confirmDialogType: 'approve' | 'reject' | 'join' | 'role' | null = null;
+  confirmDialogType: 'join' | 'role' | 'delete' | null = null;
   meetingToJoin: Meeting | null = null;
   roleChangeMember: MeetingMember | null = null;
   roleChangeRoleId: number | null = null;
@@ -113,6 +121,7 @@ export class RoomDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private roomService: RoomDataService,
+    private userDataService: UserDataService,
     private meetingService: MeetingService,
     private memberService: MemberService,
     private authService: AuthService,
@@ -751,88 +760,176 @@ export class RoomDetailComponent implements OnInit {
     });
   }
 
-  approveSelectedMembers() {
-    if (!this.selectedMeeting || this.selectedMembers.length === 0) return;
-    
-    // Filter only non-active members (pending members)
-    const pendingMembers = this.selectedMembers.filter(m => !m.active);
-
-    if (pendingMembers.length === 0) {
+  addNewMember() {
+    if (!this.selectedMeeting) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Cảnh báo',
-        detail: 'Vui lòng chọn ít nhất một thành viên chờ phê duyệt'
+        detail: 'Vui lòng chọn một cuộc họp trước'
       });
       return;
     }
 
-    // Show confirm dialog
-    this.confirmDialogTitle = 'Xác nhận phê duyệt';
-    this.confirmDialogMessage = `Bạn có chắc chắn muốn phê duyệt ${pendingMembers.length} thành viên đã chọn?`;
-    this.confirmDialogType = 'approve';
-    this.showConfirmDialog = true;
-    return;
+    // Open add member modal
+    this.showAddMemberModal = true;
+    this.searchUserQuery = '';
+    this.searchUserResults = [];
+    this.selectedUsersForAdd = [];
+    this.isAllSearchedUsersSelected = false;
   }
 
-  executeApproveMembers() {
-    if (!this.selectedMeeting) return;
-    
-    // Filter only non-active members (pending members)
-    const pendingMembers = this.selectedMembers.filter(m => !m.active);
+  closeAddMemberModal() {
+    this.showAddMemberModal = false;
+    this.searchUserQuery = '';
+    this.searchUserResults = [];
+    this.selectedUsersForAdd = [];
+    this.isAllSearchedUsersSelected = false;
+  }
 
-    if (pendingMembers.length === 0) {
+  onSearchUsers() {
+    if (!this.searchUserQuery || this.searchUserQuery.trim().length < 2) {
+      this.searchUserResults = [];
+      return;
+    }
+
+    // Delay 2 seconds before calling API
+    setTimeout(() => {
+      // Call API to search users
+      this.userDataService.searchBasic(this.searchUserQuery.trim()).subscribe({
+        next: (response: any) => {
+          if (response.success && response.data) {
+            this.searchUserResults = response.data.map((user: any) => ({
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              imgUrl: user.imgUrl,
+              department: user.department,
+              position: user.position,
+              role: user.role,
+              userCode: user.userCode,
+              active: user.active
+            }));
+          } else {
+            this.searchUserResults = [];
+          }
+        },
+        error: (error: any) => {
+          console.error('Lỗi tìm kiếm người dùng:', error);
+          this.searchUserResults = [];
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: 'Có lỗi xảy ra khi tìm kiếm người dùng'
+          });
+        }
+      });
+    }, 2000); // Delay 2 seconds
+  }
+
+  addUserToSelection(user: any) {
+    // Check if user is already selected
+    const existingUser = this.selectedUsersForAdd.find(u => u.id === user.id);
+    if (existingUser) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Cảnh báo',
-        detail: 'Vui lòng chọn ít nhất một thành viên chờ phê duyệt'
+        detail: 'Người dùng này đã được chọn'
       });
       return;
     }
 
-    const approvals = pendingMembers.map(m => ({
-      memberId: m.id,
-      roleId: m.roleId
-    }));
-
-    const payload = {
-      meetingId: this.selectedMeeting.id,
-      approvals
+    // Add user to selection with default role
+    const userToAdd = {
+      ...user,
+      selected: true,
+      selectedRoleId: this.roles[0].id // Default to first role (ADMIN)
     };
 
+    this.selectedUsersForAdd.push(userToAdd);
+    
+    // Clear search
+    this.searchUserQuery = '';
+    this.searchUserResults = [];
+    
+    this.updateSelectedUsersSelection();
+  }
+
+  toggleUserSelection(user: any) {
+    user.selected = !user.selected;
+    this.updateSelectedUsersSelection();
+  }
+
+  selectAllSearchedUsers() {
+    const allSelected = this.isAllSearchedUsersSelected;
+    this.selectedUsersForAdd.forEach(user => {
+      user.selected = !allSelected;
+    });
+    this.updateSelectedUsersSelection();
+  }
+
+  updateSelectedUsersSelection() {
+    this.isAllSearchedUsersSelected = this.selectedUsersForAdd.length > 0 && 
+      this.selectedUsersForAdd.every(user => user.selected);
+  }
+
+  getSelectedUsersCount(): number {
+    return this.selectedUsersForAdd.filter(user => user.selected).length;
+  }
+
+  confirmAddMembers() {
+    const usersToAdd = this.selectedUsersForAdd.filter(user => user.selected);
+    
+    if (usersToAdd.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Vui lòng chọn ít nhất một người dùng để thêm'
+      });
+      return;
+    }
+
+    if (!this.selectedMeeting) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Lỗi',
+        detail: 'Không tìm thấy cuộc họp được chọn'
+      });
+      return;
+    }
+
+    // Prepare invite request data
+    const inviteRequest = {
+      meetingId: this.selectedMeeting.id,
+      members: usersToAdd.map(user => ({
+        userId: user.id,
+        roleId: user.selectedRoleId
+      }))
+    };
+
+    // Call API to invite members
     this.loadingService.show();
-    this.memberService.approveMembers(payload).subscribe({
-      next: (res: any) => {
+    this.memberService.inviteMembers(inviteRequest).subscribe({
+      next: (response: any) => {
         this.loadingService.hide();
-        this.selectedMembers = [];
         this.messageService.add({
           severity: 'success',
           summary: 'Thành công',
-          detail: 'Phê duyệt thành công'
+          detail: `Đã mời ${usersToAdd.length} thành viên vào cuộc họp thành công`
         });
-        
-        // Check if admin approved themselves
-        const currentUser = this.authService.getCurrentUser();
-        const adminApprovedSelf = currentUser && pendingMembers.some(m => m.userEmail === currentUser.email);
-        
-        // Reload members
-        if (this.selectedMeeting) {
-          this.loadMeetingMembers(this.selectedMeeting.id);
-        }
-        
-        // If admin approved themselves, reload meetings to update status
-        if (adminApprovedSelf) {
-          this.loadMeetings();
-        }
+
+        // Close modal and reload members
+        this.closeAddMemberModal();
+        this.loadMeetingMembers(this.selectedMeeting!.id);
       },
-      error: (err) => {
-        console.error('Lỗi phê duyệt thành viên:', err);
+      error: (error: any) => {
         this.loadingService.hide();
+        console.error('Lỗi mời thành viên:', error);
         this.messageService.add({
           severity: 'error',
           summary: 'Lỗi',
-          detail: 'Có lỗi xảy ra khi phê duyệt thành viên'
+          detail: 'Có lỗi xảy ra khi mời thành viên vào cuộc họp'
         });
-      },
+      }
     });
   }
 
@@ -840,103 +937,58 @@ export class RoomDetailComponent implements OnInit {
     return this.meetingMembers.length > 0 && this.meetingMembers.every(m => m.selected);
   }
 
-  get hasSelectedPendingMembers(): boolean {
-    // Only enable if ALL selected members are pending (not active)
-    return this.selectedMembers.length > 0 && this.selectedMembers.every(m => !m.active);
-  }
 
-  get hasSelectedActiveMembers(): boolean {
-    // Only enable if ALL selected members are active (approved)
-    return this.selectedMembers.length > 0 && this.selectedMembers.every(m => m.active);
-  }
 
-  rejectSelectedMembers() {
+  deleteSelectedMembers() {
     if (!this.selectedMeeting) return;
-    
-    const activeMembers = this.selectedMembers.filter(m => m.active);
 
-    if (activeMembers.length === 0) {
+    if (this.selectedMembers.length === 0) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Cảnh báo',
-        detail: 'Vui lòng chọn ít nhất một thành viên đã phê duyệt để hủy'
+        detail: 'Vui lòng chọn ít nhất một thành viên để xóa'
       });
       return;
     }
 
     // Show confirm dialog
-    this.confirmDialogTitle = 'Xác nhận hủy phê duyệt';
-    this.confirmDialogMessage = `Bạn có chắc chắn muốn hủy phê duyệt ${activeMembers.length} thành viên đã chọn?`;
-    this.confirmDialogType = 'reject';
+    this.confirmDialogTitle = 'Xác nhận xóa thành viên';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn xóa ${this.selectedMembers.length} thành viên đã chọn?`;
+    this.confirmDialogType = 'delete';
     this.showConfirmDialog = true;
     return;
   }
 
-  executeRejectMembers() {
+  executeDeleteMembers() {
     if (!this.selectedMeeting) return;
-    
-    const activeMembers = this.selectedMembers.filter(m => m.active);
 
-    if (activeMembers.length === 0) {
+    if (this.selectedMembers.length === 0) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Cảnh báo',
-        detail: 'Vui lòng chọn ít nhất một thành viên đã phê duyệt để hủy'
+        detail: 'Vui lòng chọn ít nhất một thành viên để xóa'
       });
       return;
     }
 
-    const rejections = activeMembers.map(m => ({
-      memberId: m.id
-    }));
-
-    const payload = {
-      meetingId: this.selectedMeeting.id,
-      rejects: rejections
-    };
-
-    this.loadingService.show();
-    this.memberService.rejectMembers(payload).subscribe({
-      next: (res: any) => {
-        this.loadingService.hide();
-        this.selectedMembers = [];
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Thành công',
-          detail: 'Hủy phê duyệt thành công'
-        });
-        
-        // Check if admin rejected themselves
-        const currentUser = this.authService.getCurrentUser();
-        const adminRejectedSelf = currentUser && activeMembers.some(m => m.userEmail === currentUser.email);
-        
-        // Reload members
-        if (this.selectedMeeting) {
-          this.loadMeetingMembers(this.selectedMeeting.id);
-        }
-        
-        // If admin rejected themselves, reload meetings to update status
-        if (adminRejectedSelf) {
-          this.loadMeetings();
-        }
-      },
-      error: (err) => {
-        console.error('Lỗi hủy phê duyệt thành viên:', err);
-        this.loadingService.hide();
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Lỗi',
-          detail: 'Có lỗi xảy ra khi hủy phê duyệt thành viên'
-        });
-      },
+    // TODO: Implement API call to delete members
+    // For now, just show success message and remove from local list
+    this.selectedMembers = [];
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Thành công',
+      detail: 'Xóa thành viên thành công (chức năng tạm thời)'
     });
+    
+    // Reload members list
+    if (this.selectedMeeting) {
+      this.loadMeetingMembers(this.selectedMeeting.id);
+    }
   }
 
   onConfirmDialogConfirmed() {
-    if (this.confirmDialogType === 'approve') {
-      this.executeApproveMembers();
-    } else if (this.confirmDialogType === 'reject') {
-      this.executeRejectMembers();
+    if (this.confirmDialogType === 'delete') {
+      this.executeDeleteMembers();
     } else if (this.confirmDialogType === 'join') {
       this.executeJoinMeeting();
     } else if (this.confirmDialogType === 'role') {

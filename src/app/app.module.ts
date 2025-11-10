@@ -48,6 +48,7 @@ import { SuperviseComponent } from './common/components/supervise/supervise.comp
 import { LoadingComponent } from './common/components/loading/loading.component';
 import { ConfirmDialogComponent } from './common/components/confirm-dialog/confirm-dialog.component';
 import { JoinHistoryComponent } from './common/components/join-history/join-history.component';
+import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
 
 @NgModule({
   declarations: [
@@ -68,8 +69,9 @@ import { JoinHistoryComponent } from './common/components/join-history/join-hist
     ManagementComponent,
     SuperviseComponent,
     LoadingComponent,
-    ConfirmDialogComponent
-    ,JoinHistoryComponent
+    ConfirmDialogComponent,
+    JoinHistoryComponent,
+    JoinHistoryManagementComponent
   ],
   imports: [
     BrowserModule,

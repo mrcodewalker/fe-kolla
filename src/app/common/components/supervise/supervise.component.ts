@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { AttendanceLogService, AttendanceLogItem } from '../../services/attendance-log.service';
+import { UserSessionService, UserSessionItem, UserSessionSearchParams } from '../../services/user-session.service';
 
 interface ColumnConfig {
-  field: keyof AttendanceLogItem;
+  field: keyof UserSessionItem;
   header: string;
   filterType?: string;
   type?: string;
@@ -11,6 +11,7 @@ interface ColumnConfig {
   visible: boolean;
   defaultVisible: boolean;
   alwaysVisible?: boolean;
+  sortable?: boolean;
 }
 
 @Component({
@@ -22,11 +23,11 @@ export class SuperviseComponent implements OnInit {
   form: FormGroup;
 
   loading = false;
-  rows: AttendanceLogItem[] = [];
+  rows: UserSessionItem[] = [];
   totalRecords = 0;
   page = 0; // 0-based
   size = 10;
-  sortBy = 'joinAt';
+  sortBy = 'createdAt';
   sortDirection: 'asc' | 'desc' = 'desc';
 
   showColumnSelector = false;
@@ -56,16 +57,16 @@ export class SuperviseComponent implements OnInit {
       defaultVisible: true 
     },
     { 
-      field: 'joinAt', 
-      header: 'Thời gian vào', 
+      field: 'createdAt', 
+      header: 'Ngày đăng nhập', 
       type: 'date', 
       format: 'dd/MM/yyyy HH:mm', 
       visible: true, 
       defaultVisible: true 
     },
     { 
-      field: 'leaveAt', 
-      header: 'Thời gian ra', 
+      field: 'updatedAt', 
+      header: 'Ngày đăng xuất', 
       type: 'date', 
       format: 'dd/MM/yyyy HH:mm', 
       visible: true, 
@@ -86,6 +87,13 @@ export class SuperviseComponent implements OnInit {
       defaultVisible: true 
     },
     { 
+      field: 'userAgent', 
+      header: 'User Agent', 
+      filterType: 'text', 
+      visible: false, 
+      defaultVisible: false 
+    },
+    { 
       field: 'location', 
       header: 'Vị trí', 
       filterType: 'text', 
@@ -93,20 +101,28 @@ export class SuperviseComponent implements OnInit {
       defaultVisible: true 
     },
     { 
-      field: 'present', 
+      field: 'action', 
+      header: 'Hành động', 
+      filterType: 'text', 
+      visible: true, 
+      defaultVisible: true 
+    },
+    { 
+      field: 'active', 
       header: 'Trạng thái', 
       filterType: 'text', 
-      visible: false, 
-      defaultVisible: false 
+      visible: true, 
+      defaultVisible: true,
+      sortable: false
     }
   ];
 
   constructor(
     private fb: FormBuilder,
-    private attendanceLogService: AttendanceLogService
+    private userSessionService: UserSessionService
   ) {
     this.form = this.fb.group({
-      ip: [''],
+      keyword: [''],
       startDate: [''],
       endDate: ['']
     });
@@ -165,7 +181,7 @@ export class SuperviseComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      ip: '',
+      keyword: '',
       startDate: '',
       endDate: ''
     });
@@ -189,9 +205,9 @@ export class SuperviseComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { ip, startDate, endDate } = this.form.value;
+    const { keyword, startDate, endDate } = this.form.value;
     
-    const searchParams: any = {
+    const searchParams: UserSessionSearchParams = {
       page: this.page,
       size: this.size,
       sortBy: this.sortBy,
@@ -199,8 +215,8 @@ export class SuperviseComponent implements OnInit {
     };
 
     // Add search parameters if they have values
-    if (ip && ip.trim()) {
-      searchParams.ip = ip.trim();
+    if (keyword && keyword.trim()) {
+      searchParams.keyword = keyword.trim();
     }
     if (startDate) {
       // Convert to dd/MM/yyyy format
@@ -219,14 +235,14 @@ export class SuperviseComponent implements OnInit {
       searchParams.endDate = `${day}/${month}/${year}`;
     }
 
-    this.attendanceLogService.getMyAttendanceLogs(searchParams).subscribe({
+    this.userSessionService.searchUserSessions(searchParams).subscribe({
       next: (res) => {
         const data = res?.data;
         this.rows = data?.content || [];
         this.totalRecords = data?.totalElements || 0;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.rows = [];
         this.totalRecords = 0;
         this.loading = false;

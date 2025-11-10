@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { AttendanceLogService, AttendanceLogItem } from '../../services/attendance-log.service';
+import { AttendanceLogService, AttendanceLogItem, AttendanceLogsSearchParams } from '../../services/attendance-log.service';
 
 interface ColumnConfig {
   field: keyof AttendanceLogItem;
@@ -15,11 +15,15 @@ interface ColumnConfig {
 }
 
 @Component({
-  selector: 'app-join-history',
-  templateUrl: './join-history.component.html',
-  styleUrls: ['./join-history.component.scss']
+  selector: 'app-join-history-management',
+  templateUrl: './join-history-management.component.html',
+  styleUrls: [
+    './join-history-management.component.scss',
+    './column-dialog-override.scss'
+  ],
+  encapsulation: ViewEncapsulation.None
 })
-export class JoinHistoryComponent implements OnInit {
+export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   form: FormGroup;
 
   loading = false;
@@ -32,6 +36,21 @@ export class JoinHistoryComponent implements OnInit {
 
   showColumnSelector = false;
   componentInitialized = false;
+
+  // Calendar configuration to prevent duplicate rendering
+  calendarConfig = {
+    locale: 'vi',
+    showIcon: true,
+    iconDisplay: 'input' as const,
+    icon: 'pi pi-calendar',
+    appendTo: 'body',
+    touchUI: false,
+    readonlyInput: false,
+    showClear: false,
+    keepInvalid: false,
+    hideOnDateTimeSelect: true,
+    showButtonBar: false
+  };
 
   columnConfig: ColumnConfig[] = [
     { 
@@ -97,8 +116,8 @@ export class JoinHistoryComponent implements OnInit {
       field: 'present', 
       header: 'Trạng thái', 
       filterType: 'text', 
-      visible: false, 
-      defaultVisible: false,
+      visible: true, 
+      defaultVisible: true,
       sortable: false
     }
   ];
@@ -108,19 +127,56 @@ export class JoinHistoryComponent implements OnInit {
     private attendanceLogService: AttendanceLogService
   ) {
     this.form = this.fb.group({
-      ipAddress: [''],
-      joinAt: [''],
-      leaveAt: ['']
+      keyword: [''],
+      startDate: [''],
+      endDate: ['']
     });
   }
 
   ngOnInit(): void {
     this.loadData();
     // Mark component as initialized after a small delay
-    
     setTimeout(() => {
       this.componentInitialized = true;
     }, 100);
+    
+    // Fix calendar duplicate issue
+    this.fixCalendarDuplicates();
+  }
+
+  ngAfterViewInit(): void {
+    // Additional fix after view init
+    setTimeout(() => {
+      this.fixCalendarDuplicates();
+    }, 500);
+  }
+
+  private fixCalendarDuplicates(): void {
+    // Observer to watch for calendar DOM changes
+    const observer = new MutationObserver(() => {
+      const calendars = document.querySelectorAll('.p-datepicker .p-datepicker-date');
+      calendars.forEach(dateElement => {
+        // Remove duplicate text nodes
+        const textNodes = Array.from(dateElement.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+        if (textNodes.length > 1) {
+          // Keep only the first text node
+          for (let i = 1; i < textNodes.length; i++) {
+            dateElement.removeChild(textNodes[i]);
+          }
+        }
+      });
+    });
+
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Clean up observer after 5 seconds
+    setTimeout(() => {
+      observer.disconnect();
+    }, 5000);
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -161,16 +217,16 @@ export class JoinHistoryComponent implements OnInit {
   }
 
   onSearch(): void {
-    this.loading = true; // Show loading state
+    this.loading = true;
     this.page = 0; // reset to first page on search
     this.loadData();
   }
 
   onClear(): void {
     this.form.reset({
-      ipAddress: '',
-      joinAt: '',
-      leaveAt: ''
+      keyword: '',
+      startDate: '',
+      endDate: ''
     });
     this.page = 0;
     this.loadData();
@@ -192,9 +248,9 @@ export class JoinHistoryComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { ipAddress, joinAt, leaveAt } = this.form.value;
+    const { keyword, startDate, endDate } = this.form.value;
     
-    const searchParams: any = {
+    const searchParams: AttendanceLogsSearchParams = {
       page: this.page,
       size: this.size,
       sortBy: this.sortBy,
@@ -202,27 +258,27 @@ export class JoinHistoryComponent implements OnInit {
     };
 
     // Add search parameters if they have values
-    if (ipAddress && ipAddress.trim()) {
-      searchParams.ip = ipAddress.trim();
+    if (keyword && keyword.trim()) {
+      searchParams.keyword = keyword.trim();
     }
-    if (joinAt) {
+    if (startDate) {
       // Convert to dd/MM/yyyy format
-      const date = new Date(joinAt);
+      const date = new Date(startDate);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       searchParams.startDate = `${day}/${month}/${year}`;
     }
-    if (leaveAt) {
+    if (endDate) {
       // Convert to dd/MM/yyyy format
-      const date = new Date(leaveAt);
+      const date = new Date(endDate);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       searchParams.endDate = `${day}/${month}/${year}`;
     }
 
-    this.attendanceLogService.getMyAttendanceLogs(searchParams).subscribe({
+    this.attendanceLogService.searchAttendanceLogs(searchParams).subscribe({
       next: (res) => {
         const data = res?.data;
         this.rows = data?.content || [];
@@ -239,18 +295,15 @@ export class JoinHistoryComponent implements OnInit {
 
   // Column Settings Methods
   onColumnToggle(column: ColumnConfig): void {
-    // Column visibility is already updated via ngModel binding
-    // Ensure at least one visible column (excluding always visible ones)
     const visibleCount = this.columnConfig.filter(col => col.visible).length;
     if (visibleCount === 0) {
-      // If no columns are visible, revert the change
       column.visible = true;
     }
   }
 
   toggleColumnCard(column: ColumnConfig): void {
     if (column.alwaysVisible) {
-      return; // Don't allow toggling required columns
+      return;
     }
     
     column.visible = !column.visible;
@@ -264,8 +317,6 @@ export class JoinHistoryComponent implements OnInit {
   }
 
   applyColumnSettings(): void {
-    // Settings are already applied via ngModel binding
-    // Just close the panel
     this.showColumnSelector = false;
   }
 
