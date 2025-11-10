@@ -22,46 +22,59 @@
                 <span>ID Phòng ban</span>
               </label>
               <div class="input-container">
-                <input 
-                  id="id" 
-                  type="number" 
-                  pInputText 
-                  formControlName="id" 
-                  placeholder="Nhập ID phòng ban..." 
-                  class="input-field" />
+                <input
+                  id="id"
+                  type="number"
+                  pInputText
+                  formControlName="id"
+                  placeholder="Nhập ID phòng ban..."
+                  class="input-field"
+                />
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="actions-group">
-              <button 
-                pButton 
-                type="button" 
+              <button
+                pButton
+                type="button"
                 label="Làm mới"
-                [disabled]="loading" 
-                class="p-button-outlined p-button-secondary btn-action" 
-                [style]="{'font-weight': '700 !important', 'font-style': 'normal', 'font-size': '0.875rem !important' }"
-                (click)="onClear()">
-              </button>
-              <button 
-                pButton 
-                label="Tìm kiếm" 
-                type="submit" 
+                [disabled]="loading"
+                class="p-button-outlined p-button-secondary btn-action"
+                [style]="{
+                  'font-weight': '700 !important',
+                  'font-style': 'normal',
+                  'font-size': '0.875rem !important'
+                }"
+                (click)="onClear()"
+              ></button>
+              <button
+                pButton
+                label="Tìm kiếm"
+                type="submit"
                 [disabled]="loading"
                 [loading]="loading"
                 loadingIcon="pi pi-spin pi-spinner"
-                [style]="{'font-weight': '700 !important', 'font-style': 'normal', 'font-size': '0.875rem !important'}"
-                class="p-button-primary btn-action">
-              </button>
-              <button 
-                pButton 
-                type="button" 
+                [style]="{
+                  'font-weight': '700 !important',
+                  'font-style': 'normal',
+                  'font-size': '0.875rem !important'
+                }"
+                class="p-button-primary btn-action"
+              ></button>
+              <button
+                pButton
+                type="button"
                 label="Thêm phòng ban"
-                [disabled]="loading" 
-                class="p-button-success btn-action" 
-                [style]="{'font-weight': '700 !important', 'font-style': 'normal', 'font-size': '0.875rem !important'}"
-                (click)="showAddDepartmentDialog()">
-              </button>
+                [disabled]="loading"
+                class="p-button-success btn-action"
+                [style]="{
+                  'font-weight': '700 !important',
+                  'font-style': 'normal',
+                  'font-size': '0.875rem !important'
+                }"
+                (click)="showAddDepartmentDialog()"
+              ></button>
             </div>
           </div>
         </form>
@@ -72,15 +85,15 @@
   <!-- Column Settings Section -->
   <div class="column-settings-section mb-3">
     <div class="flex justify-content-end">
-      <button 
-        pButton 
-        type="button" 
+      <button
+        pButton
+        type="button"
         icon="pi pi-cog"
         label="Tùy chỉnh hiển thị cột"
         class="p-button-outlined p-button-info"
-        [style]="{'font-weight': '600', 'border-radius': '8px'}"
-        (click)="showColumnSelector = true">
-      </button>
+        [style]="{ 'font-weight': '600', 'border-radius': '8px' }"
+        (click)="showColumnSelector = true"
+      ></button>
     </div>
   </div>
 
@@ -97,20 +110,27 @@
       [lazy]="false"
       [first]="page * size"
       [showCurrentPageReport]="true"
-      [currentPageReportTemplate]="'Đang hiển thị {first} đến {last} trên tổng số {totalRecords} bản ghi'"
+      [currentPageReportTemplate]="
+        'Đang hiển thị {first} đến {last} trên tổng số {totalRecords} bản ghi'
+      "
       (onPage)="onPageChange($event)"
       (onSort)="onSortChange($event)"
-      styleClass="p-datatable-gridlines">
-      
+      styleClass="p-datatable-gridlines"
+    >
       <ng-template pTemplate="header">
         <tr>
-          <th *ngFor="let col of displayedColumns" 
-              [pSortableColumn]="getSortableField(col)"
-              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
-              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'">
+          <th
+            *ngFor="let col of displayedColumns"
+            [pSortableColumn]="getSortableField(col)"
+            [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+            [style.min-width]="col.field === 'actions' ? '180px' : 'auto'"
+          >
             <div class="th-content">
-              <span class="th-title">{{col.header}}</span>
-              <p-sortIcon *ngIf="col.field !== 'actions'" [field]="getSortableField(col)"></p-sortIcon>
+              <span class="th-title">{{ col.header }}</span>
+              <p-sortIcon
+                *ngIf="col.field !== 'actions'"
+                [field]="getSortableField(col)"
+              ></p-sortIcon>
             </div>
           </th>
         </tr>
@@ -118,37 +138,42 @@
 
       <ng-template pTemplate="body" let-rowData>
         <tr>
-          <td *ngFor="let col of displayedColumns" 
-              [style.width]="col.field === 'actions' ? '180px' : 'auto'"
-              [style.min-width]="col.field === 'actions' ? '180px' : 'auto'">
+          <td
+            *ngFor="let col of displayedColumns"
+            [style.width]="col.field === 'actions' ? '180px' : 'auto'"
+            [style.min-width]="col.field === 'actions' ? '180px' : 'auto'"
+          >
             <ng-container [ngSwitch]="col.field">
               <!-- Actions Column -->
-              <div *ngSwitchCase="'actions'" class="flex align-items-center justify-content-center gap-2">
-                <button 
-                  pButton 
-                  type="button" 
+              <div
+                *ngSwitchCase="'actions'"
+                class="flex align-items-center justify-content-center gap-2"
+              >
+                <button
+                  pButton
+                  type="button"
                   label="Chỉnh sửa"
                   class="p-button-sm p-button-outlined p-button-info"
-                  (click)="showEditDepartmentDialog(rowData)">
-                </button>
-                <button 
-                  pButton 
-                  type="button" 
+                  (click)="showEditDepartmentDialog(rowData)"
+                ></button>
+                <button
+                  pButton
+                  type="button"
                   label="Xóa"
                   class="p-button-sm p-button-outlined p-button-danger"
-                  (click)="deleteDepartment(rowData)">
-                </button>
+                  (click)="deleteDepartment(rowData)"
+                ></button>
               </div>
               <!-- Regular Data Columns -->
               <ng-container *ngSwitchDefault [ngSwitch]="col.type">
                 <span *ngSwitchCase="'date'">
-                  {{rowData[col.field] | date:col.format || 'short'}}
+                  {{ rowData[col.field] | date : col.format || "short" }}
                 </span>
                 <span *ngSwitchCase="'currency'">
-                  {{rowData[col.field] | currency:col.currency || 'USD'}}
+                  {{ rowData[col.field] | currency : col.currency || "USD" }}
                 </span>
                 <span *ngSwitchDefault>
-                  {{rowData[col.field]}}
+                  {{ rowData[col.field] }}
                 </span>
               </ng-container>
             </ng-container>
@@ -167,37 +192,48 @@
   </div>
 
   <!-- Column Selector Dialog -->
-  <p-dialog 
-    [(visible)]="showColumnSelector" 
-    [modal]="true" 
-    [closable]="true" 
-    [draggable]="false" 
+  <p-dialog
+    [(visible)]="showColumnSelector"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
     [resizable]="false"
     styleClass="column-selector-dialog rounded-dialog"
     [showHeader]="true"
     header="Tùy chỉnh hiển thị cột"
-    [style]="{width: '480px', 'max-width': '90vw', 'border-radius': '12px !important', 'border': '2px solid #9ca3af !important', 'overflow': 'hidden'}">
-    
+    [style]="{
+      width: '480px',
+      'max-width': '90vw',
+      'border-radius': '12px !important',
+      border: '2px solid #9ca3af !important',
+      overflow: 'hidden'
+    }"
+  >
     <div class="column-selector-content">
       <div class="column-options-header mb-3">
-        <h4 class="mb-2" style="color: #0e7490; font-weight: 600;">
-          <i class="pi pi-list mr-2" style="color: #06b6d4;"></i>
+        <h4 class="mb-2" style="color: #0e7490; font-weight: 600">
+          <i class="pi pi-list mr-2" style="color: #06b6d4"></i>
           Hiển thị tất cả
         </h4>
-        <p class="text-sm text-secondary mb-0">Chọn các cột bạn muốn hiển thị trên bảng dữ liệu</p>
+        <p class="text-sm text-secondary mb-0">
+          Chọn các cột bạn muốn hiển thị trên bảng dữ liệu
+        </p>
       </div>
 
       <div class="column-options-grid">
-        <div 
-          *ngFor="let column of columnConfig" 
+        <div
+          *ngFor="let column of columnConfig"
           class="column-option-card"
           [class.disabled]="column.alwaysVisible"
-          (click)="!column.alwaysVisible && toggleColumnVisibility(column)">
-          
+          (click)="!column.alwaysVisible && toggleColumnVisibility(column)"
+        >
           <div class="column-option-content">
             <div class="column-icon">
-              <i class="pi pi-circle" [class.pi-check-circle]="column.visible" 
-                 [style.color]="column.visible ? '#06b6d4' : '#94a3b8'"></i>
+              <i
+                class="pi pi-circle"
+                [class.pi-check-circle]="column.visible"
+                [style.color]="column.visible ? '#06b6d4' : '#94a3b8'"
+              ></i>
             </div>
             <div class="column-info">
               <span class="column-header">{{ column.header }}</span>
@@ -206,44 +242,55 @@
         </div>
       </div>
 
-      <div class="column-actions mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+      <div
+        class="column-actions mt-4 pt-3"
+        style="border-top: 1px solid #e5e7eb"
+      >
         <div class="flex justify-content-between align-items-center gap-3">
-          <button 
-            pButton 
-            type="button" 
+          <button
+            pButton
+            type="button"
             label="Đặt lại mặc định"
             class="p-button-outlined dialog-action-btn"
-            [style]="{'font-weight': '600', 'border-radius': '6px', 'flex': '1'}"
-            (click)="resetColumnVisibility()">
-          </button>
-          <button 
-            pButton 
-            type="button" 
+            [style]="{
+              'font-weight': '600',
+              'border-radius': '6px',
+              flex: '1'
+            }"
+            (click)="resetColumnVisibility()"
+          ></button>
+          <button
+            pButton
+            type="button"
             label="Thoát"
             class="p-button-outlined dialog-action-btn"
-            [style]="{'font-weight': '600', 'border-radius': '6px', 'flex': '1'}"
-            (click)="showColumnSelector = false">
-          </button>
+            [style]="{
+              'font-weight': '600',
+              'border-radius': '6px',
+              flex: '1'
+            }"
+            (click)="showColumnSelector = false"
+          ></button>
         </div>
       </div>
     </div>
   </p-dialog>
 
   <!-- Add Department Dialog -->
-  <p-dialog 
-    [(visible)]="showAddDialog" 
-    [modal]="true" 
-    [closable]="true" 
-    [draggable]="false" 
+  <p-dialog
+    [(visible)]="showAddDialog"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
     [resizable]="false"
     [closeOnEscape]="true"
     [dismissableMask]="false"
     styleClass="add-department-dialog"
     [showHeader]="true"
     header="Thêm phòng ban mới"
-    [style]="{width: '500px', 'max-width': '90vw'}"
-    [baseZIndex]="1000">
-    
+    [style]="{ width: '500px', 'max-width': '90vw' }"
+    [baseZIndex]="1000"
+  >
     <div class="add-department-content">
       <form [formGroup]="addDepartmentForm" (ngSubmit)="onAddDepartment()">
         <div class="form-fields">
@@ -254,15 +301,25 @@
               <span class="required-asterisk">*</span>
             </label>
             <div class="input-container">
-              <input 
-                id="name" 
-                type="text" 
-                pInputText 
-                formControlName="name" 
-                placeholder="Nhập tên phòng ban..." 
+              <input
+                id="name"
+                type="text"
+                pInputText
+                formControlName="name"
+                placeholder="Nhập tên phòng ban..."
                 class="input-field w-full"
-                [class.p-invalid]="addDepartmentForm.get('name')?.invalid && addDepartmentForm.get('name')?.touched" />
-              <small class="p-error" *ngIf="addDepartmentForm.get('name')?.invalid && addDepartmentForm.get('name')?.touched">
+                [class.p-invalid]="
+                  addDepartmentForm.get('name')?.invalid &&
+                  addDepartmentForm.get('name')?.touched
+                "
+              />
+              <small
+                class="p-error"
+                *ngIf="
+                  addDepartmentForm.get('name')?.invalid &&
+                  addDepartmentForm.get('name')?.touched
+                "
+              >
                 Tên phòng ban là bắt buộc
               </small>
             </div>
@@ -274,13 +331,14 @@
               <span>Mô tả</span>
             </label>
             <div class="input-container">
-              <textarea 
-                id="description" 
+              <textarea
+                id="description"
                 pInputTextarea
-                formControlName="description" 
-                placeholder="Nhập mô tả phòng ban..." 
+                formControlName="description"
+                placeholder="Nhập mô tả phòng ban..."
                 class="input-field w-full"
-                [rows]="3">
+                [rows]="3"
+              >
               </textarea>
             </div>
           </div>
@@ -288,23 +346,23 @@
 
         <div class="dialog-actions">
           <div class="flex justify-content-end align-items-center gap-3">
-            <button 
-              pButton 
-              type="button" 
+            <button
+              pButton
+              type="button"
               label="Hủy"
               icon="pi pi-times"
               class="p-button-outlined dialog-cancel-btn"
-              (click)="closeAddDepartmentDialog()">
-            </button>
-            <button 
-              pButton 
-              type="submit" 
+              (click)="closeAddDepartmentDialog()"
+            ></button>
+            <button
+              pButton
+              type="submit"
               label="Thêm phòng ban"
               icon="pi pi-plus"
               class="p-button-primary dialog-submit-btn"
               [disabled]="addDepartmentForm.invalid || addingDepartment"
-              [loading]="addingDepartment">
-            </button>
+              [loading]="addingDepartment"
+            ></button>
           </div>
         </div>
       </form>
@@ -312,20 +370,20 @@
   </p-dialog>
 
   <!-- Edit Department Dialog -->
-  <p-dialog 
-    [(visible)]="showEditDialog" 
-    [modal]="true" 
-    [closable]="true" 
-    [draggable]="false" 
+  <p-dialog
+    [(visible)]="showEditDialog"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
     [resizable]="false"
     [closeOnEscape]="true"
     [dismissableMask]="false"
     styleClass="edit-department-dialog"
     [showHeader]="true"
     header="Chỉnh sửa phòng ban"
-    [style]="{width: '500px', 'max-width': '90vw'}"
-    [baseZIndex]="1000">
-    
+    [style]="{ width: '500px', 'max-width': '90vw' }"
+    [baseZIndex]="1000"
+  >
     <div class="add-department-content">
       <form [formGroup]="editDepartmentForm" (ngSubmit)="onEditDepartment()">
         <div class="form-fields">
@@ -336,15 +394,25 @@
               <span class="required-asterisk">*</span>
             </label>
             <div class="input-container">
-              <input 
-                id="editName" 
-                type="text" 
-                pInputText 
-                formControlName="name" 
-                placeholder="Nhập tên phòng ban..." 
+              <input
+                id="editName"
+                type="text"
+                pInputText
+                formControlName="name"
+                placeholder="Nhập tên phòng ban..."
                 class="input-field w-full"
-                [class.p-invalid]="editDepartmentForm.get('name')?.invalid && editDepartmentForm.get('name')?.touched" />
-              <small class="p-error" *ngIf="editDepartmentForm.get('name')?.invalid && editDepartmentForm.get('name')?.touched">
+                [class.p-invalid]="
+                  editDepartmentForm.get('name')?.invalid &&
+                  editDepartmentForm.get('name')?.touched
+                "
+              />
+              <small
+                class="p-error"
+                *ngIf="
+                  editDepartmentForm.get('name')?.invalid &&
+                  editDepartmentForm.get('name')?.touched
+                "
+              >
                 Tên phòng ban là bắt buộc
               </small>
             </div>
@@ -356,13 +424,14 @@
               <span>Mô tả</span>
             </label>
             <div class="input-container">
-              <textarea 
-                id="editDescription" 
+              <textarea
+                id="editDescription"
                 pInputTextarea
-                formControlName="description" 
-                placeholder="Nhập mô tả phòng ban..." 
+                formControlName="description"
+                placeholder="Nhập mô tả phòng ban..."
                 class="input-field w-full"
-                [rows]="3">
+                [rows]="3"
+              >
               </textarea>
             </div>
           </div>
@@ -370,23 +439,23 @@
 
         <div class="dialog-actions">
           <div class="flex justify-content-end align-items-center gap-3">
-            <button 
-              pButton 
-              type="button" 
+            <button
+              pButton
+              type="button"
               label="Hủy"
               icon="pi pi-times"
               class="p-button-outlined dialog-cancel-btn"
-              (click)="closeEditDepartmentDialog()">
-            </button>
-            <button 
-              pButton 
-              type="submit" 
+              (click)="closeEditDepartmentDialog()"
+            ></button>
+            <button
+              pButton
+              type="submit"
               label="Cập nhật"
               icon="pi pi-check"
               class="p-button-primary dialog-submit-btn"
               [disabled]="editDepartmentForm.invalid || editingDepartment"
-              [loading]="editingDepartment">
-            </button>
+              [loading]="editingDepartment"
+            ></button>
           </div>
         </div>
       </form>
@@ -394,7 +463,7 @@
   </p-dialog>
 
   <!-- Loading Dialog -->
-  <p-dialog 
+  <!-- <p-dialog 
     [(visible)]="loading" 
     [modal]="true" 
     [closable]="false" 
@@ -411,5 +480,5 @@
         <p>Vui lòng chờ trong giây lát</p>
       </div>
     </div>
-  </p-dialog>
+  </p-dialog> -->
 </div>

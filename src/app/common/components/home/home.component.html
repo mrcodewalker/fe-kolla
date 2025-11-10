@@ -1,111 +1,151 @@
 <!-- Header trên cùng -->
-<header class="flex items-center bg-gray-200 px-4 py-1.5 shadow border-b-2 border-stone-300">
-    <!-- App icon-->
-    <div class="flex items-center gap-4">
-        <img src="assets/images/logo_kolla.png" alt="Logo" class="h-8 w-8 object-contain" />
+<header
+  class="flex items-center bg-gray-200 px-4 py-1.5 shadow border-b-2 border-stone-300 h-16"
+>
+  <!-- App icon-->
+  <div class="flex items-center gap-4">
+    <img
+      src="assets/images/logo_kolla.png"
+      alt="Logo"
+      class="h-8 w-8 object-contain"
+    />
+  </div>
+  <!-- Search box-->
+  <div class="flex-1 flex justify-center">
+    <div class="relative w-[600px]">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+        <i class="pi pi-search text-gray-400"></i>
+      </span>
+      <input
+        type="text"
+        placeholder="Tìm kiếm"
+        class="border rounded-[8px] pl-10 pr-3 py-1 w-full focus:outline-none placeholder:text-[14px] placeholder:font-normal"
+      />
     </div>
-    <!-- Search box-->
-    <div class="flex-1 flex justify-center">
-        <div class="relative w-[600px]">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                <i class="pi pi-search text-gray-400"></i>
-            </span>
-            <input type="text" placeholder="Tìm kiếm"
-                class="border rounded-[8px] pl-10 pr-3 py-1 w-full focus:outline-none placeholder:text-[14px] placeholder:font-normal" />
-        </div>
-    </div>
-    <!-- User icon-->
-    <div class="relative select-none user-info-container">
-        <i class="fa-sharp fa-regular fa-circle-user text-3xl text-cyan-700 cursor-pointer"
-            (mousedown)="$event.preventDefault()" (click)="toggleUserInfo()"></i>
-        <div *ngIf="showUserInfo"
-            class="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-4 z-50 select-none">
-            <div class="flex items-center justify-between mb-2.5 w-full">
-                <span class="text-sm font-bold text-cyan-700">KOLLA MEETING</span>
-                <span (click)="logout()" class="cursor-pointer text-cyan-500 hover:text-cyan-600 text-xs font-semibold">Đăng xuất</span>
-            </div>
+  </div>
+  <!-- User icon-->
+  <div class="relative select-none user-info-container">
+    <i
+      class="fa-sharp fa-regular fa-circle-user text-3xl text-cyan-700 cursor-pointer"
+      (mousedown)="$event.preventDefault()"
+      (click)="toggleUserInfo()"
+    ></i>
+    <div
+      *ngIf="showUserInfo"
+      class="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-4 z-50 select-none"
+    >
+      <div class="flex items-center justify-between mb-2.5 w-full">
+        <span class="text-sm font-bold text-cyan-700">KOLLA MEETING</span>
+        <span
+          (click)="logout()"
+          class="cursor-pointer text-cyan-500 hover:text-cyan-600 text-xs font-semibold"
+          >Đăng xuất</span
+        >
+      </div>
 
-
-            <div class="flex items-center mb-3">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mr-3">
-                        <i class="fa-solid fa-user text-cyan-600 text-xl"></i>
-                    </div>
-                    <div>
-                        <h5 class="text-base font-bold text-cyan-700">{{ user?.name || 'Chưa đăng nhập' }}</h5>
-                        <p class="text-sm text-gray-500">{{ user?.role || 'Không có vai trò' }}</p>
-                    </div>
-                </div>
-            </div>
-            <div *ngIf="user; else notLoggedIn" class="space-y-2 mb-4">
-                <div class="flex items-center text-gray-700">
-                    <i class="fa-solid fa-envelope w-4 mr-2 text-gray-400"></i>
-                    <span class="text-sm">{{ user.email }}</span>
-                </div>
-                <div class="flex items-center text-gray-700">
-                    <i class="fa-solid fa-building w-4 mr-2 text-gray-400"></i>
-                    <span class="text-sm">{{ user.department || '-' }}</span>
-                </div>
-                <div class="flex items-center text-gray-700">
-                    <i class="fa-solid fa-info-circle w-4 mr-2 text-gray-400"></i>
-                    <a routerLink="/home/userinfo" class="text-cyan-500 hover:text-cyan-700 text-sm underline cursor-pointer">Xem thông tin chi tiết</a>
-                </div>
-            </div>
-            <ng-template #notLoggedIn>
-                <div class="text-center text-gray-500 mb-4">
-                    <p>Vui lòng đăng nhập để xem thông tin chi tiết</p>
-                </div>
-            </ng-template>
+      <div class="flex items-center mb-3">
+        <div class="flex items-center">
+          <div
+            class="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mr-3"
+          >
+            <i class="fa-solid fa-user text-cyan-600 text-xl"></i>
+          </div>
+          <div>
+            <h5 class="text-base font-bold text-cyan-700">
+              {{ user?.name || "Chưa đăng nhập" }}
+            </h5>
+            <p class="text-sm text-gray-500">
+              {{ user?.role || "Không có vai trò" }}
+            </p>
+          </div>
         </div>
+      </div>
+      <div *ngIf="user; else notLoggedIn" class="space-y-2 mb-4">
+        <div class="flex items-center text-gray-700">
+          <i class="fa-solid fa-envelope w-4 mr-2 text-gray-400"></i>
+          <span class="text-sm">{{ user.email }}</span>
+        </div>
+        <div class="flex items-center text-gray-700">
+          <i class="fa-solid fa-building w-4 mr-2 text-gray-400"></i>
+          <span class="text-sm">{{ user.department || "-" }}</span>
+        </div>
+        <div class="flex items-center text-gray-700">
+          <i class="fa-solid fa-info-circle w-4 mr-2 text-gray-400"></i>
+          <a
+            routerLink="/home/userinfo"
+            class="text-cyan-500 hover:text-cyan-700 text-sm underline cursor-pointer"
+            >Xem thông tin chi tiết</a
+          >
+        </div>
+      </div>
+      <ng-template #notLoggedIn>
+        <div class="text-center text-gray-500 mb-4">
+          <p>Vui lòng đăng nhập để xem thông tin chi tiết</p>
+        </div>
+      </ng-template>
     </div>
+  </div>
 </header>
-<div class="flex h-[calc(100vh-64px)]"> <!-- Giả sử header cao 64px -->
+<div class="flex h-[calc(100vh-64px)]">
+  <nav
+    class="w-16 bg-gray-200 text-gray-500 flex flex-col border-stone-200 shadow-inner"
+  >
+    <a
+      routerLink="/home/notification"
+      routerLinkActive="bg-white/50 text-cyan-700 border-l-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-0.5">
+        <i class="fa-solid fa-bell text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px]">Thông báo</p>
+        </div>
+      </div>
+    </a>
 
-    <nav class="w-16 bg-gray-200 text-gray-500 flex flex-col py-1.5 px-0.5 border-r-2 border-stone-200">
+    <!-- Nhóm -->
+    <a
+      routerLink="/home/roomlist"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-users text-[20px] py-1.5"></i>
+        <div class="pb-0.5">
+          <p class="text-[10px]">Nhóm</p>
+        </div>
+      </div>
+    </a>
+    <!-- Thêm các link khác nếu cần -->
 
-        <a routerLink="/home/notification" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-bell text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px]">Thông báo</p>
-                </div>
-            </div>
-        </a>
+    <a
+      routerLink="/home/calendar"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-regular fa-calendar-days text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px]">Lịch họp</p>
+        </div>
+      </div>
+    </a>
 
-        <!-- Nhóm -->
-        <a routerLink="/home/roomlist" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-users text-[20px] py-1.5"></i>
-                <div class="pb-0.5">
-                    <p class="text-[10px]">Nhóm</p>
-                </div>
-            </div>
-        </a>
-        <!-- Thêm các link khác nếu cần -->
+    <a
+      routerLink="/home/join-history"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+      title="Lịch sử họp"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-clock-rotate-left text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center line-clamp-1">Lịch sử họp</p>
+        </div>
+      </div>
+    </a>
 
-        <a routerLink="/home/calendar" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-regular fa-calendar-days text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px]">Lịch họp</p>
-                </div>
-            </div>
-        </a>
-
-        <a routerLink="/home/join-history" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-clock-rotate-left text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px] text-center">Lịch sử họp</p>
-                </div>
-            </div>
-        </a>
-
-        <!-- <a *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'" routerLink="/home/documents" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
+    <!-- <a *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'" routerLink="/home/documents" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
             class="flex justify-center hover:bg-white w-full">
             <div class="flex flex-col items-center justify-center h-full">
                 <i class="fa-solid fa-file text-[20px] py-1.5"></i>
@@ -115,50 +155,67 @@
             </div>
         </a> -->
 
-        <a *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'" routerLink="/home/approve" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-clipboard-check text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px] text-center">Xét duyệt</p>
-                </div>
-            </div>
-        </a>
+    <a
+      *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'"
+      routerLink="/home/approve"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-clipboard-check text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center">Xét duyệt</p>
+        </div>
+      </div>
+    </a>
 
-        <a *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'" routerLink="/home/departments" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-building-user text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px] text-center">Phòng ban</p>
-                </div>
-            </div>
-        </a>
+    <a
+      *ngIf="user?.role === 'ADMIN' || user?.role === 'SECRETARY'"
+      routerLink="/home/departments"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-building-user text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center">Phòng ban</p>
+        </div>
+      </div>
+    </a>
 
-        <a *ngIf="user?.role === 'ADMIN'" routerLink="/home/management" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-bars-progress text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px] text-center">Quản lí tài khoản</p>
-                </div>
-            </div>
-        </a>
+    <a
+      *ngIf="user?.role === 'ADMIN'"
+      routerLink="/home/management"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-bars-progress text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center">Tài khoản</p>
+        </div>
+      </div>
+    </a>
 
-        <a *ngIf="user?.role === 'ADMIN'" routerLink="/home/supervise" routerLinkActive="bg-white text-cyan-700 border-l-2 border-blue-700"
-            class="flex justify-center hover:bg-white w-full">
-            <div class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-eye text-[20px] py-1.5"></i>
-                <div>
-                    <p class="text-[10px] text-center">Giám sát log</p>
-                </div>
-            </div>
-        </a>
-    </nav>
-    <!-- Nội dung bên phải -->
-    <div class="flex-1">
-        <main class="overflow-auto h-full">
-            <router-outlet></router-outlet>
-        </main>
-    </div>
+    <a
+      *ngIf="user?.role === 'ADMIN'"
+      routerLink="/home/supervise"
+      routerLinkActive="bg-white text-cyan-700 border-blue-700 shadow-inner"
+      class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
+      title="Giám sát log"
+    >
+      <div class="flex flex-col items-center justify-center h-full p-1">
+        <i class="fa-solid fa-eye text-[20px] py-1.5"></i>
+        <div>
+          <p class="text-[10px] text-center line-clamp-1">Giám sát lịch họp</p>
+        </div>
+      </div>
+    </a>
+  </nav>
+  <!-- Nội dung bên phải -->
+  <div class="flex-1">
+    <main class="overflow-auto h-full">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>
