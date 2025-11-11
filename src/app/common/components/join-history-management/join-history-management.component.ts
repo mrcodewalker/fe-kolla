@@ -1,4 +1,7 @@
+  import { UserDataService } from '../../services/user-data.service';
 import { Component, OnInit, AfterViewInit, ViewEncapsulation } from '@angular/core';
+import { MeetingService } from '../../services/meeting.service';
+import { Meeting } from '../../models/meeting.model';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { AttendanceLogService, AttendanceLogItem, AttendanceLogsSearchParams } from '../../services/attendance-log.service';
 
@@ -24,6 +27,7 @@ interface ColumnConfig {
   encapsulation: ViewEncapsulation.None
 })
 export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
+  memberDropdownHovered = false;
   form: FormGroup;
 
   loading = false;
@@ -35,6 +39,9 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   sortDirection: 'asc' | 'desc' = 'desc';
 
   showColumnSelector = false;
+
+  // Track selected member's userId
+  selectedMemberId: string | null = null;
   componentInitialized = false;
 
   // Calendar configuration to prevent duplicate rendering
@@ -122,15 +129,119 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
     }
   ];
 
+  // Autocomplete for meeting name
+  meetingSuggestions: Meeting[] = [];
+  showMeetingDropdown = false;
+  private meetingInputTimeout: any;
+
+  // Autocomplete for member name
+  memberSuggestions: any[] = [];
+  private memberInputTimeout: any;
+
   constructor(
     private fb: FormBuilder,
-    private attendanceLogService: AttendanceLogService
+    private attendanceLogService: AttendanceLogService,
+    private meetingService: MeetingService,
+    private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
       keyword: [''],
+      memberName: [''],
       startDate: [''],
       endDate: ['']
     });
+  }
+
+  onMemberNameInput(): void {
+    const query = this.form.get('memberName')?.value?.trim();
+    // If user edits the input after selection, clear selectedMemberId
+    this.selectedMemberId = null;
+    if (this.memberInputTimeout) {
+      clearTimeout(this.memberInputTimeout);
+    }
+    if (!query) {
+      this.memberSuggestions = [];
+      return;
+    }
+    this.memberInputTimeout = setTimeout(() => {
+      this.attendanceLogService.searchAttendanceLogs({ keyword: query, size: 10 }).subscribe({
+        next: (res: any) => {
+          if (res && res.success && res.data && Array.isArray(res.data.content)) {
+            // Lấy unique user theo userName + userEmail
+            const seen = new Set();
+            this.memberSuggestions = res.data.content.filter((item: import('../../services/attendance-log.service').AttendanceLogItem) => {
+              const key = item.userName + '|' + item.userEmail;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            }).map((item: import('../../services/attendance-log.service').AttendanceLogItem) => ({
+              id: item.id, // Use id as userId
+              fullName: item.userName,
+              email: item.userEmail
+            }));
+          } else {
+            this.memberSuggestions = [];
+          }
+        },
+        error: (err) => {
+          this.memberSuggestions = [];
+        }
+      });
+    }, 2000);
+  }
+
+  onMemberInputBlur(): void {
+    setTimeout(() => {
+      if (!this.memberDropdownHovered) {
+        this.memberSuggestions = [];
+      }
+    }, 200);
+  }
+
+  selectMemberSuggestion(user: any): void {
+    this.form.get('memberName')?.setValue(user.fullName || user.email);
+    // Store the selected user's id (if available)
+    this.selectedMemberId = user.id || user.userId || null;
+    this.memberSuggestions = [];
+    // Do NOT trigger search here; only update the input and selectedMemberId
+  }
+  
+  // (Removed duplicate onMemberNameInput)
+  // Called on input event of meeting name
+  onMeetingNameInput(): void {
+    const keyword = this.form.get('keyword')?.value?.trim();
+    if (this.meetingInputTimeout) {
+      clearTimeout(this.meetingInputTimeout);
+    }
+    if (!keyword) {
+      this.meetingSuggestions = [];
+      return;
+    }
+    this.meetingInputTimeout = setTimeout(() => {
+      this.meetingService.searchMeeting({ title: keyword, size: 10 }).subscribe({
+        next: (res: any) => {
+          // API returns paged response, get content
+          this.meetingSuggestions = res?.data?.content || [];
+        },
+        error: () => {
+          this.meetingSuggestions = [];
+        }
+      });
+    }, 2000);
+  }
+
+  // Hide dropdown after blur, with slight delay to allow click
+  onMeetingInputBlur(): void {
+    setTimeout(() => {
+      this.showMeetingDropdown = false;
+    }, 200);
+  }
+
+  // Select a meeting suggestion
+  selectMeetingSuggestion(meeting: Meeting): void {
+    this.form.get('keyword')?.setValue(meeting.title);
+    this.meetingSuggestions = [];
+    this.showMeetingDropdown = false;
   }
 
   ngOnInit(): void {
@@ -225,9 +336,11 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   onClear(): void {
     this.form.reset({
       keyword: '',
+      memberName: '',
       startDate: '',
       endDate: ''
     });
+    this.selectedMemberId = null;
     this.page = 0;
     this.loadData();
   }
@@ -249,7 +362,7 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   private loadData(): void {
     this.loading = true;
     const { keyword, startDate, endDate } = this.form.value;
-    
+
     const searchParams: AttendanceLogsSearchParams = {
       page: this.page,
       size: this.size,
@@ -257,12 +370,18 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       sortDirection: this.sortDirection
     };
 
-    // Add search parameters if they have values
+    // Always use meeting name as keyword
     if (keyword && keyword.trim()) {
       searchParams.keyword = keyword.trim();
     }
+    // If a member is selected from dropdown, use their userId
+    if (this.selectedMemberId) {
+      const userIdNum = Number(this.selectedMemberId);
+      if (!isNaN(userIdNum)) {
+        searchParams.userId = userIdNum;
+      }
+    }
     if (startDate) {
-      // Convert to dd/MM/yyyy format
       const date = new Date(startDate);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -270,7 +389,6 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       searchParams.startDate = `${day}/${month}/${year}`;
     }
     if (endDate) {
-      // Convert to dd/MM/yyyy format
       const date = new Date(endDate);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');

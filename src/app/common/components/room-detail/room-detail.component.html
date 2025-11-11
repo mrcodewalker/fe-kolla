@@ -378,14 +378,14 @@
             <!-- Add member button -->
             <button
               (click)="addNewMember()"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium"
+              class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded text-sm font-medium"
             >
               Thêm thành viên
             </button>
 
-            <!-- Delete selected button - only enabled when members are selected -->
+            <!-- Reject selected button - only enabled when members are selected -->
             <button
-              (click)="deleteSelectedMembers()"
+              (click)="rejectSelectedMembers()"
               [disabled]="selectedMembers.length === 0"
               class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded text-sm font-medium"
             >
@@ -771,7 +771,7 @@
     confirmText="Xác nhận"
     cancelText="Hủy"
     [confirmButtonClass]="
-      confirmDialogType === 'delete'
+      confirmDialogType === 'delete' || confirmDialogType === 'reject'
         ? 'bg-red-600 hover:bg-red-700'
         : 'bg-green-600 hover:bg-green-700'
     "
@@ -970,9 +970,11 @@
                   [(ngModel)]="user.selectedRoleId"
                   class="border rounded px-2 py-1 text-sm w-full"
                 >
+                  <option value="" disabled selected>Chọn vai trò</option>
                   <option
                     *ngFor="let role of roles"
                     [value]="role.id"
+                    [selected]="role.name === 'USER'"
                   >
                     {{ translateRole(role.name) }}
                   </option>
@@ -1002,7 +1004,7 @@
       </button>
       <button
         type="button"
-        class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm"
+        class="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-700 text-white text-sm"
         (click)="confirmAddMembers()"
         [disabled]="getSelectedUsersCount() === 0"
       >

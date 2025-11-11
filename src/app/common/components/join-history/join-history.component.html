@@ -16,23 +16,6 @@
       <div class="card-body p-4">
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <div class="search-row">
-            <!-- IP Address Field -->
-            <div class="field-group">
-              <label for="ipAddress" class="field-label">
-                <span>IP Address</span>
-              </label>
-              <div class="input-container">
-                <input
-                  id="ipAddress"
-                  type="text"
-                  pInputText
-                  formControlName="ipAddress"
-                  placeholder="Nhập IP address..."
-                  class="input-field"
-                />
-              </div>
-            </div>
-
             <!-- Join Date Field -->
             <div class="field-group">
               <label for="joinAt" class="field-label">

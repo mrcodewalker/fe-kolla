@@ -32,54 +32,6 @@
               </div>
             </div>
 
-            <!-- User ID Field -->
-            <div class="field-group">
-              <label for="userId" class="field-label">               
-                <span>User ID</span>
-              </label>
-              <div class="input-container">
-                <input 
-                  id="userId" 
-                  type="number" 
-                  pInputText 
-                  formControlName="userId" 
-                  placeholder="ID người dùng" 
-                  class="input-field" />
-              </div>
-            </div>
-
-            <!-- Meeting ID Field -->
-            <div class="field-group">
-              <label for="meetingId" class="field-label">
-                <span>Meeting ID</span>
-              </label>
-              <div class="input-container">
-                <input 
-                  id="meetingId" 
-                  type="number" 
-                  pInputText 
-                  formControlName="meetingId" 
-                  placeholder="ID cuộc họp" 
-                  class="input-field" />
-              </div>
-            </div>
-
-            <!-- Role ID Field -->
-            <div class="field-group">
-              <label for="roleId" class="field-label">
-                <span>Role ID</span>
-              </label>
-              <div class="input-container">
-                <input 
-                  id="roleId" 
-                  type="number" 
-                  pInputText 
-                  formControlName="roleId" 
-                  placeholder="ID vai trò" 
-                  class="input-field" />
-              </div>
-            </div>
-
             <!-- Status Field -->
             <div class="field-group">
               <label for="isActive" class="field-label">
@@ -208,15 +160,21 @@
                   (click)="rejectRequest(rowData)"
                   title="Từ chối yêu cầu">
                 </button>
-                <span *ngIf="rowData.active" class="text-success flex align-items-center gap-1">
-                  <i class="pi pi-check-circle text-green-500"></i>
-                  <span class="text-sm font-medium">Đã duyệt</span>
-                </span>
+                <button 
+                  *ngIf="rowData.active"
+                  pButton
+                  type="button" 
+                  label="Xóa thành viên"
+                  class="p-button-sm p-button-outlined p-button-danger custom-delete-btn"
+                  [style]="{'color': '#dc2626 !important', 'border-color': '#dc2626 !important'}"
+                  (click)="rejectRequest(rowData)"
+                  title="Xóa thành viên">
+                </button>
               </div>
               <!-- Boolean Column (Trạng thái) -->
               <span *ngSwitchCase="'active'">
                 <span class="p-tag" [class]="rowData.active ? 'p-tag-success' : 'p-tag-warning'">
-                  {{ rowData.active ? 'Đã duyệt' : 'Chờ duyệt' }}
+                  {{ rowData.active ? 'Đã tham gia' : 'Chờ duyệt' }}
                 </span>
               </span>
               <!-- Date Column -->

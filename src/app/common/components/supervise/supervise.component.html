@@ -19,7 +19,7 @@
             <!-- Keyword Field -->
             <div class="field-group">
               <label for="keyword" class="field-label">
-                <span>Từ khóa</span>
+                <span>Tên</span>
               </label>
               <div class="input-container">
                 <input 
@@ -27,7 +27,7 @@
                   type="text" 
                   pInputText 
                   formControlName="keyword" 
-                  placeholder="Tìm kiếm theo thiết bị, IP, vị trí, hành động, tên, email..." 
+                  placeholder="Tìm kiếm theo tên" 
                   class="input-field" />
               </div>
             </div>
@@ -44,29 +44,6 @@
                   [showTime]="false"
                   dateFormat="dd/mm/yy"
                   placeholder="Chọn ngày đăng nhập"
-                  [showIcon]="true"
-                  [iconDisplay]="'input'"
-                  icon="pi pi-calendar"
-                  [appendTo]="'body'"
-                  [touchUI]="false"
-                  [readonlyInput]="false"
-                  styleClass="input-field date-field">
-                </p-calendar>
-              </div>
-            </div>
-
-            <!-- End Date Field -->
-            <div class="field-group">
-              <label for="endDate" class="field-label">
-                <span>Ngày đăng xuất</span>
-              </label>
-              <div class="input-container">
-                <p-calendar 
-                  id="endDate"
-                  formControlName="endDate"
-                  [showTime]="false"
-                  dateFormat="dd/mm/yy"
-                  placeholder="Chọn ngày đăng xuất"
                   [showIcon]="true"
                   [iconDisplay]="'input'"
                   icon="pi pi-calendar"

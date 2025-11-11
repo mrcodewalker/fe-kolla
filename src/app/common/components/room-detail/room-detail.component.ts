@@ -97,7 +97,7 @@ export class RoomDetailComponent implements OnInit {
   showConfirmDialog: boolean = false;
   confirmDialogTitle: string = '';
   confirmDialogMessage: string = '';
-  confirmDialogType: 'join' | 'role' | 'delete' | null = null;
+  confirmDialogType: 'join' | 'role' | 'delete' | 'reject' | null = null;
   meetingToJoin: Meeting | null = null;
   roleChangeMember: MeetingMember | null = null;
   roleChangeRoleId: number | null = null;
@@ -839,10 +839,11 @@ export class RoomDetailComponent implements OnInit {
     }
 
     // Add user to selection with default role
+    const userRole = this.roles.find(role => role.name === 'USER') || this.roles[0];
     const userToAdd = {
       ...user,
       selected: true,
-      selectedRoleId: this.roles[0].id // Default to first role (ADMIN)
+      selectedRoleId: userRole.id // Default to USER role
     };
 
     this.selectedUsersForAdd.push(userToAdd);
@@ -959,6 +960,26 @@ export class RoomDetailComponent implements OnInit {
     return;
   }
 
+  rejectSelectedMembers() {
+    if (!this.selectedMeeting) return;
+
+    if (this.selectedMembers.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Vui lòng chọn ít nhất một thành viên để từ chối'
+      });
+      return;
+    }
+
+    // Show confirm dialog
+    this.confirmDialogTitle = 'Xác nhận từ chối thành viên';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn từ chối ${this.selectedMembers.length} thành viên đã chọn?`;
+    this.confirmDialogType = 'reject';
+    this.showConfirmDialog = true;
+    return;
+  }
+
   executeDeleteMembers() {
     if (!this.selectedMeeting) return;
 
@@ -986,9 +1007,61 @@ export class RoomDetailComponent implements OnInit {
     }
   }
 
+  executeRejectMembers() {
+    if (!this.selectedMeeting) return;
+
+    if (this.selectedMembers.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Vui lòng chọn ít nhất một thành viên để từ chối'
+      });
+      return;
+    }
+
+    // Prepare reject request data
+    const rejectRequest = {
+      meetingId: this.selectedMeeting.id,
+      rejects: this.selectedMembers.map(member => ({
+        memberId: member.id
+      }))
+    };
+
+    // Call API to reject members
+    this.memberService.rejectMembers(rejectRequest).subscribe({
+      next: (response) => {
+        // Clear selected members
+        this.selectedMembers = [];
+        
+        // Show success message
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: response.message || 'Từ chối thành viên thành công'
+        });
+        
+        // Reload members list
+        if (this.selectedMeeting) {
+          this.loadMeetingMembers(this.selectedMeeting.id);
+        }
+      },
+      error: (error) => {
+        // Show error message
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: error.error?.message || 'Có lỗi xảy ra khi từ chối thành viên'
+        });
+        console.error('Error rejecting members:', error);
+      }
+    });
+  }
+
   onConfirmDialogConfirmed() {
     if (this.confirmDialogType === 'delete') {
       this.executeDeleteMembers();
+    } else if (this.confirmDialogType === 'reject') {
+      this.executeRejectMembers();
     } else if (this.confirmDialogType === 'join') {
       this.executeJoinMeeting();
     } else if (this.confirmDialogType === 'role') {

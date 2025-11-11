@@ -26,4 +26,37 @@ export class MeetingService extends BaseService<Meeting> {
       },
     });
   }
+
+  /**
+   * Search meetings with multiple query params
+   * @param params object chứa các trường:
+   *  - keyword, title, description, createdBy, roomId, startTime, endTime, startDate, endDate, isRecording, page, size, sortBy, sortDirection
+   */
+  searchMeeting(params: {
+    keyword?: string;
+    title?: string;
+    description?: string;
+    createdBy?: number;
+    roomId?: number;
+    startTime?: string;
+    endTime?: string;
+    startDate?: string;
+    endDate?: string;
+    isRecording?: boolean;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
+  }) {
+    // Xây dựng object params chỉ chứa các trường có giá trị
+    const queryParams: any = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams[key] = value;
+      }
+    });
+    return this.http.get<any>(`${this.apiUrl}/search`, { params: queryParams });
+  }
+
+  
 }

@@ -17,22 +17,6 @@
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <!-- First row of search fields -->
           <div class="search-row mb-3">
-            <!-- Keyword Field -->
-            <div class="field-group">
-              <label for="keyword" class="field-label">
-                <span>Từ khóa</span>
-              </label>
-              <div class="input-container">
-                <input
-                  id="keyword"
-                  type="text"
-                  pInputText
-                  formControlName="keyword"
-                  placeholder="Nhập từ khóa..."
-                  class="input-field"
-                />
-              </div>
-            </div>
 
             <!-- Name Field -->
             <div class="field-group">
@@ -199,6 +183,19 @@
 
           <!-- Action Buttons -->
           <div class="actions-group">
+            <button
+              pButton
+              type="button"
+              label="Thêm tài khoản"
+              [disabled]="loading"
+              class="p-button-outlined p-button-success btn-action"
+              [style]="{
+                'font-weight': '500 !important',
+                'font-size': '0.875rem !important',
+                'font-style': 'normal'
+              }"
+              (click)="onAddAccount()"
+            ></button>
             <button
               pButton
               type="button"
@@ -599,6 +596,223 @@
         ></button>
       </div>
     </form>
+  </p-dialog>
+
+  <!-- Add Account Dialog -->
+  <p-dialog
+    [(visible)]="showAddDialog"
+    [modal]="true"
+    [closable]="true"  
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [dismissableMask]="false"
+    styleClass="add-account-dialog modern-dialog"
+    [showHeader]="true"
+    header="Thêm tài khoản mới"
+    [style]="{
+      width: '650px',
+      'max-width': '95vw',
+      'border-radius': '16px !important',
+      'box-shadow': '0 20px 60px rgba(0, 0, 0, 0.15) !important',
+      'border': '1px solid #e2e8f0 !important'
+    }"
+    [baseZIndex]="1000"
+  >
+    <div class="add-account-content">
+      <!-- Header info -->
+      <div class="dialog-header-info mb-4">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon">
+            <i class="pi pi-user-plus" style="font-size: 1.5rem; color: #06b6d4;"></i>
+          </div>
+          <div class="header-text">
+            <p class="text-sm text-gray-600 m-0">Nhập thông tin để tạo tài khoản mới cho người dùng</p>
+          </div>
+        </div>
+      </div>
+
+      <form [formGroup]="addForm" (ngSubmit)="onSaveAdd()">
+        <!-- Personal Information Section -->
+        <div class="form-section mb-4">
+          <h4 class="section-title">
+            <i class="pi pi-user mr-2"></i>
+            Thông tin cá nhân
+          </h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="addFullName" class="field-label">
+                <span>Họ tên</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <i class="pi pi-user input-icon"></i>
+                <input
+                  id="addFullName"
+                  type="text"
+                  pInputText
+                  formControlName="fullName"
+                  placeholder="Nhập họ tên đầy đủ..."
+                  class="modern-input"
+                />
+              </div>
+              <small class="error-message" *ngIf="addForm.get('fullName')?.invalid && addForm.get('fullName')?.touched">
+                Vui lòng nhập họ tên
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="addEmail" class="field-label">
+                <span>Email</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <i class="pi pi-envelope input-icon"></i>
+                <input
+                  id="addEmail"
+                  type="email"
+                  pInputText
+                  formControlName="email"
+                  placeholder="example@company.com"
+                  class="modern-input"
+                />
+              </div>
+              <small class="error-message" *ngIf="addForm.get('email')?.invalid && addForm.get('email')?.touched">
+                Vui lòng nhập email hợp lệ
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Section -->
+        <div class="form-section mb-4">
+          <h4 class="section-title">
+            <i class="pi pi-lock mr-2"></i>
+            Thông tin bảo mật
+          </h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="addPassword" class="field-label">
+                <span>Mật khẩu</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <i class="pi pi-key input-icon"></i>
+                <input
+                  id="addPassword"
+                  type="password"
+                  pInputText
+                  formControlName="password"
+                  placeholder="Tối thiểu 6 ký tự..."
+                  class="modern-input"
+                />
+              </div>
+              <small class="error-message" *ngIf="addForm.get('password')?.invalid && addForm.get('password')?.touched">
+                Mật khẩu phải có ít nhất 6 ký tự
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="addConfirmPassword" class="field-label">
+                <span>Xác nhận mật khẩu</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <i class="pi pi-shield input-icon"></i>
+                <input
+                  id="addConfirmPassword"
+                  type="password"
+                  pInputText
+                  formControlName="confirmPassword"
+                  placeholder="Nhập lại mật khẩu..."
+                  class="modern-input"
+                />
+              </div>
+              <small class="error-message" *ngIf="addForm.get('confirmPassword')?.hasError('passwordMismatch') && addForm.get('confirmPassword')?.touched">
+                Mật khẩu xác nhận không khớp
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Organization Section -->
+        <div class="form-section mb-4">
+          <h4 class="section-title">
+            <i class="pi pi-building mr-2"></i>
+            Thông tin tổ chức
+          </h4>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="addDepartment" class="field-label">
+                <span>Phòng ban</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="dropdown-wrapper">
+                <p-dropdown
+                  id="addDepartment"
+                  formControlName="departmentId"
+                  [options]="departments"
+                  optionLabel="departmentName"
+                  optionValue="id"
+                  placeholder="Chọn phòng ban..."
+                  [showClear]="false"
+                  styleClass="modern-dropdown"
+                >
+                </p-dropdown>
+              </div>
+              <small class="error-message" *ngIf="addForm.get('departmentId')?.invalid && addForm.get('departmentId')?.touched">
+                Vui lòng chọn phòng ban
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="addRole" class="field-label">
+                <span>Vai trò</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="dropdown-wrapper">
+                <p-dropdown
+                  id="addRole"
+                  formControlName="roleId"
+                  [options]="roles"
+                  optionLabel="name"
+                  optionValue="id"
+                  placeholder="Chọn vai trò..."
+                  [showClear]="false"
+                  styleClass="modern-dropdown"
+                >
+                </p-dropdown>
+              </div>
+              <small class="error-message" *ngIf="addForm.get('roleId')?.invalid && addForm.get('roleId')?.touched">
+                Vui lòng chọn vai trò
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="dialog-actions">
+          <button
+            pButton
+            type="button"
+            label="Hủy bỏ"
+            icon="pi pi-times"
+            class="p-button-outlined cancel-btn"
+            (click)="onCancelAdd()"
+            [disabled]="addSubmitting"
+          ></button>
+          <button
+            pButton
+            type="submit"
+            label="Tạo tài khoản"
+            icon="pi pi-check"
+            class="p-button-primary submit-btn"
+            [disabled]="addForm.invalid || addSubmitting"
+            [loading]="addSubmitting"
+          ></button>
+        </div>
+      </form>
+    </div>
   </p-dialog>
 
   <!-- Loading Dialog -->

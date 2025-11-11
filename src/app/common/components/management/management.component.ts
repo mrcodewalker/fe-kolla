@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserManagementService, UserManagementItem, UpdateUserRequest } from '../../services/user-management.service';
 import { DepartmentService, DepartmentItem } from '../../services/department.service';
 import { RoleService, RoleItem } from '../../services/role.service';
+import { AuthenticationService, RegisterRequest } from '../../services/authentication.service';
 
 interface ColumnConfig {
   field: keyof UserManagementItem | 'actions';
@@ -24,6 +25,7 @@ interface ColumnConfig {
 export class ManagementComponent implements OnInit {
   form: FormGroup;
   editForm: FormGroup;
+  addForm: FormGroup;
 
   loading = false;
   rows: UserManagementItem[] = [];
@@ -35,8 +37,10 @@ export class ManagementComponent implements OnInit {
 
   showColumnSelector = false;
   showEditDialog = false;
+  showAddDialog = false;
   editingUser: UserManagementItem | null = null;
   componentInitialized = false;
+  addSubmitting = false;
 
   departments: DepartmentItem[] = [];
   roles: RoleItem[] = [];
@@ -143,7 +147,8 @@ export class ManagementComponent implements OnInit {
     private fb: FormBuilder,
     private userManagementService: UserManagementService,
     private departmentService: DepartmentService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private authService: AuthenticationService
   ) {
     this.form = this.fb.group({
       keyword: [''],
@@ -175,6 +180,15 @@ export class ManagementComponent implements OnInit {
       degree: [''],
       active: [true]
     });
+
+    this.addForm = this.fb.group({
+      fullName: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required],
+      departmentId: [null, Validators.required],
+      roleId: [null, Validators.required]
+    }, { validator: this.passwordMatchValidator });
   }
 
   ngOnInit(): void {
@@ -375,5 +389,74 @@ export class ManagementComponent implements OnInit {
   getRoleName(roleId: number): string {
     const role = this.roles.find(r => r.id === roleId);
     return role?.name || '';
+  }
+
+  // Password match validator
+  passwordMatchValidator(form: FormGroup) {
+    const password = form.get('password');
+    const confirmPassword = form.get('confirmPassword');
+    
+    if (password && confirmPassword && password.value !== confirmPassword.value) {
+      confirmPassword.setErrors({ passwordMismatch: true });
+      return { passwordMismatch: true };
+    } else {
+      if (confirmPassword?.hasError('passwordMismatch')) {
+        confirmPassword.setErrors(null);
+      }
+      return null;
+    }
+  }
+
+  // Add Account methods
+  onAddAccount(): void {
+    this.showAddDialog = true;
+  }
+
+  onSaveAdd(): void {
+    if (this.addForm.valid) {
+      this.addSubmitting = true;
+      
+      const registerData: RegisterRequest = {
+        email: this.addForm.value.email,
+        password: this.addForm.value.password,
+        fullName: this.addForm.value.fullName,
+        departmentId: this.addForm.value.departmentId,
+        roleId: this.addForm.value.roleId
+      };
+
+      this.authService.register(registerData).subscribe({
+        next: (response) => {
+          this.addSubmitting = false;
+          
+          // Always close dialog and reset form after getting response
+          this.showAddDialog = false;
+          this.addForm.reset();
+          
+          if (response && response.success) {
+            console.log('Thêm tài khoản thành công:', response.message);
+            this.loadData(); // Refresh data table only on success
+            // You can add success toast notification here
+          } else {
+            console.error('Thêm tài khoản thất bại:', response?.message || 'Unknown error');
+            // You can add error toast notification here
+          }
+        },
+        error: (error) => {
+          this.addSubmitting = false;
+          
+          // Close dialog even on error
+          this.showAddDialog = false;
+          this.addForm.reset();
+          
+          console.error('Lỗi API:', error);
+          // You can add error toast notification here
+        }
+      });
+    }
+  }
+
+  onCancelAdd(): void {
+    this.showAddDialog = false;
+    this.addForm.reset();
   }
 }

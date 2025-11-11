@@ -69,8 +69,8 @@ export class SuperviseComponent implements OnInit {
       header: 'Ngày đăng xuất', 
       type: 'date', 
       format: 'dd/MM/yyyy HH:mm', 
-      visible: true, 
-      defaultVisible: true 
+      visible: false, 
+      defaultVisible: false 
     },
     { 
       field: 'ipAddress', 
@@ -123,8 +123,7 @@ export class SuperviseComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       keyword: [''],
-      startDate: [''],
-      endDate: ['']
+      startDate: ['']
     });
   }
 
@@ -182,8 +181,7 @@ export class SuperviseComponent implements OnInit {
   onClear(): void {
     this.form.reset({
       keyword: '',
-      startDate: '',
-      endDate: ''
+      startDate: ''
     });
     this.page = 0;
     this.loadData();
@@ -205,7 +203,7 @@ export class SuperviseComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { keyword, startDate, endDate } = this.form.value;
+    const { keyword, startDate } = this.form.value;
     
     const searchParams: UserSessionSearchParams = {
       page: this.page,
@@ -225,14 +223,6 @@ export class SuperviseComponent implements OnInit {
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       searchParams.startDate = `${day}/${month}/${year}`;
-    }
-    if (endDate) {
-      // Convert to dd/MM/yyyy format
-      const date = new Date(endDate);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      searchParams.endDate = `${day}/${month}/${year}`;
     }
 
     this.userSessionService.searchUserSessions(searchParams).subscribe({
