@@ -3,8 +3,10 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { RoomDataService } from '../../services/room-data.service';
 import { MemberService } from '../../services/member.service';
 import { MeetingService } from '../../services/meeting.service';
+import { UserDataService } from '../../services/user-data.service';
 import { ApproveService, MemberItem, MemberSearchParams } from '../../services/approve.service';
 import { Member, ApprovalRequest, RejectRequest } from '../../models/member.model';
+import { Meeting } from '../../models/meeting.model';
 
 interface ColumnConfig {
   field: keyof MemberItem | 'actions';
@@ -37,6 +39,18 @@ export class ApproveComponent implements OnInit {
 
   showColumnSelector = false;
   componentInitialized = false;
+
+  // Autocomplete for meeting name
+  meetingSuggestions: Meeting[] = [];
+  showMeetingDropdown = false;
+  private meetingInputTimeout: any;
+  selectedMeetingIdFromSearch: number | null = null;
+
+  // Autocomplete for member name
+  memberSuggestions: any[] = [];
+  private memberInputTimeout: any;
+  selectedUserIdFromSearch: string | null = null;
+  memberDropdownHovered = false;
 
   // Legacy properties (keeping for compatibility)
   roomList: any[] = [];
@@ -131,10 +145,12 @@ export class ApproveComponent implements OnInit {
     private roomDataService: RoomDataService,
     private memberService: MemberService,
     private meetingService: MeetingService,
-    private approveService: ApproveService
+    private approveService: ApproveService,
+    private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
-      keyword: [''],
+      meetingName: [''],
+      memberName: [''],
       userId: [''],
       meetingId: [''],
       roleId: [''],
@@ -149,6 +165,104 @@ export class ApproveComponent implements OnInit {
     setTimeout(() => {
       this.componentInitialized = true;
     }, 100);
+  }
+
+  // Meeting Name autocomplete methods
+  onMeetingNameInput(): void {
+    const keyword = this.form.get('meetingName')?.value?.trim();
+    // If user edits the input after selection, clear selectedMeetingIdFromSearch
+    this.selectedMeetingIdFromSearch = null;
+    if (this.meetingInputTimeout) {
+      clearTimeout(this.meetingInputTimeout);
+    }
+    if (!keyword) {
+      this.meetingSuggestions = [];
+      return;
+    }
+    this.meetingInputTimeout = setTimeout(() => {
+      this.meetingService.searchMeeting({ keyword: keyword, size: 10 }).subscribe({
+        next: (res: any) => {
+          console.log('Meeting search response:', res);
+          // API returns paged response, get content
+          this.meetingSuggestions = res?.data?.content || [];
+          console.log('Meeting suggestions:', this.meetingSuggestions);
+        },
+        error: (err) => {
+          console.error('Error searching meetings:', err);
+          this.meetingSuggestions = [];
+        }
+      });
+    }, 2000);
+  }
+
+  onMeetingInputBlur(): void {
+    setTimeout(() => {
+      this.showMeetingDropdown = false;
+      this.meetingSuggestions = [];
+    }, 200);
+  }
+
+  selectMeetingSuggestion(meeting: Meeting): void {
+    this.form.get('meetingName')?.setValue(meeting.title);
+    // Store the selected meeting's meetingId
+    this.selectedMeetingIdFromSearch = meeting.id || null;
+    console.log('Selected meeting:', meeting.title, 'with meetingId:', this.selectedMeetingIdFromSearch);
+    this.meetingSuggestions = [];
+    this.showMeetingDropdown = false;
+  }
+
+  // Member Name autocomplete methods
+  onMemberNameInput(): void {
+    const query = this.form.get('memberName')?.value?.trim();
+    // If user edits the input after selection, clear selectedUserIdFromSearch
+    this.selectedUserIdFromSearch = null;
+    if (this.memberInputTimeout) {
+      clearTimeout(this.memberInputTimeout);
+    }
+    if (!query) {
+      this.memberSuggestions = [];
+      return;
+    }
+    this.memberInputTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(query).subscribe({
+        next: (res: any) => {
+          console.log('User search response:', res);
+          if (res && res.success && res.data && Array.isArray(res.data)) {
+            this.memberSuggestions = res.data.map((user: any) => ({
+              userId: user.id,
+              fullName: user.fullName || user.name || user.displayName,
+              email: user.email,
+              name: user.name,
+              displayName: user.displayName
+            }));
+            console.log('Member suggestions:', this.memberSuggestions);
+          } else {
+            this.memberSuggestions = [];
+          }
+        },
+        error: (err) => {
+          console.error('Error searching users:', err);
+          this.memberSuggestions = [];
+        }
+      });
+    }, 2000);
+  }
+
+  onMemberInputBlur(): void {
+    setTimeout(() => {
+      if (!this.memberDropdownHovered) {
+        this.memberSuggestions = [];
+      }
+    }, 200);
+  }
+
+  selectMemberSuggestion(user: any): void {
+    const displayName = user.fullName || user.name || user.displayName || user.email;
+    this.form.get('memberName')?.setValue(displayName);
+    // Store the selected user's userId
+    this.selectedUserIdFromSearch = user.userId ? String(user.userId) : null;
+    console.log('Selected member:', displayName, 'with userId:', this.selectedUserIdFromSearch);
+    this.memberSuggestions = [];
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -196,12 +310,15 @@ export class ApproveComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      keyword: '',
+      meetingName: '',
+      memberName: '',
       userId: '',
       meetingId: '',
       roleId: '',
       isActive: null
     });
+    this.selectedMeetingIdFromSearch = null;
+    this.selectedUserIdFromSearch = null;
     this.page = 0;
     this.loadData();
   }
@@ -231,7 +348,7 @@ export class ApproveComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { keyword, userId, meetingId, roleId, isActive } = this.form.value;
+    const { roleId, isActive } = this.form.value;
     
     const searchParams: MemberSearchParams = {
       page: this.page,
@@ -240,15 +357,17 @@ export class ApproveComponent implements OnInit {
       sortDirection: this.sortDirection
     };
 
-    // Add search parameters if they have values
-    if (keyword && keyword.trim()) {
-      searchParams.keyword = keyword.trim();
+    // Add search parameters from autocomplete selections
+    if (this.selectedMeetingIdFromSearch) {
+      searchParams.meetingId = this.selectedMeetingIdFromSearch;
+      console.log('Searching with meetingId:', this.selectedMeetingIdFromSearch);
     }
-    if (userId !== undefined && userId !== null && userId !== '') {
-      searchParams.userId = parseInt(userId);
-    }
-    if (meetingId !== undefined && meetingId !== null && meetingId !== '') {
-      searchParams.meetingId = parseInt(meetingId);
+    if (this.selectedUserIdFromSearch) {
+      const userIdNum = Number(this.selectedUserIdFromSearch);
+      if (!isNaN(userIdNum)) {
+        searchParams.userId = userIdNum;
+        console.log('Searching with userId:', userIdNum);
+      }
     }
     if (roleId !== undefined && roleId !== null && roleId !== '') {
       searchParams.roleId = parseInt(roleId);
@@ -261,6 +380,7 @@ export class ApproveComponent implements OnInit {
 
     this.approveService.searchMembers(searchParams).subscribe({
       next: (res) => {
+        console.log('Search results:', res);
         if (res.success && res.data && res.data.content && res.data.content.length > 0) {
           this.rows = res.data.content[0].members || [];
           this.totalRecords = res.data.totalElements || 0;
@@ -270,7 +390,8 @@ export class ApproveComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error searching members:', err);
         this.rows = [];
         this.totalRecords = 0;
         this.loading = false;

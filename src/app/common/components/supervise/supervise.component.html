@@ -16,19 +16,31 @@
       <div class="card-body p-4">
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <div class="search-row">
-            <!-- Keyword Field -->
+            <!-- User Name Field -->
             <div class="field-group">
-              <label for="keyword" class="field-label">
+              <label for="userName" class="field-label">
                 <span>Tên</span>
               </label>
-              <div class="input-container">
+              <div class="input-container" style="position: relative;">
                 <input 
-                  id="keyword" 
+                  id="userName" 
                   type="text" 
                   pInputText 
-                  formControlName="keyword" 
-                  placeholder="Tìm kiếm theo tên" 
-                  class="input-field" />
+                  formControlName="userName" 
+                  placeholder="Nhập tên người dùng..." 
+                  class="input-field"
+                  (input)="onUserNameInput()"
+                  (blur)="onUserInputBlur()"
+                  (focus)="userDropdownHovered = false"
+                  autocomplete="off"
+                />
+                <!-- Dropdown for user suggestions -->
+                <ul *ngIf="userSuggestions.length > 0" class="user-dropdown"
+                    (mouseenter)="userDropdownHovered = true" (mouseleave)="userDropdownHovered = false">
+                  <li *ngFor="let user of userSuggestions" (mousedown)="selectUserSuggestion(user)">
+                    {{ user.fullName || user.name || user.displayName || user.email }}
+                  </li>
+                </ul>
               </div>
             </div>
 

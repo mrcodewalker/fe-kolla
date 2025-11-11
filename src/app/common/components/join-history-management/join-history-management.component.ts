@@ -6,7 +6,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { AttendanceLogService, AttendanceLogItem, AttendanceLogsSearchParams } from '../../services/attendance-log.service';
 
 interface ColumnConfig {
-  field: keyof AttendanceLogItem;
+  field: keyof AttendanceLogItem | 'roomName';
   header: string;
   filterType?: string;
   type?: string;
@@ -42,6 +42,8 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
 
   // Track selected member's userId
   selectedMemberId: string | null = null;
+  // Track selected meeting's meetingId
+  selectedMeetingId: number | null = null;
   componentInitialized = false;
 
   // Calendar configuration to prevent duplicate rendering
@@ -99,6 +101,14 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       defaultVisible: true 
     },
     { 
+      field: 'roomName', 
+      header: 'Tên phòng họp', 
+      filterType: 'text', 
+      visible: true, 
+      defaultVisible: true,
+      sortable: false
+    },
+    { 
       field: 'ipAddress', 
       header: 'Địa chỉ IP', 
       filterType: 'text', 
@@ -118,14 +128,6 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       filterType: 'text', 
       visible: true, 
       defaultVisible: true 
-    },
-    { 
-      field: 'present', 
-      header: 'Trạng thái', 
-      filterType: 'text', 
-      visible: true, 
-      defaultVisible: true,
-      sortable: false
     }
   ];
 
@@ -164,26 +166,24 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       return;
     }
     this.memberInputTimeout = setTimeout(() => {
-      this.attendanceLogService.searchAttendanceLogs({ keyword: query, size: 10 }).subscribe({
+      this.userDataService.searchBasic(query).subscribe({
         next: (res: any) => {
-          if (res && res.success && res.data && Array.isArray(res.data.content)) {
-            // Lấy unique user theo userName + userEmail
-            const seen = new Set();
-            this.memberSuggestions = res.data.content.filter((item: import('../../services/attendance-log.service').AttendanceLogItem) => {
-              const key = item.userName + '|' + item.userEmail;
-              if (seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            }).map((item: import('../../services/attendance-log.service').AttendanceLogItem) => ({
-              id: item.id, // Use id as userId
-              fullName: item.userName,
-              email: item.userEmail
+          console.log('User search response:', res);
+          if (res && res.success && res.data && Array.isArray(res.data)) {
+            this.memberSuggestions = res.data.map((user: any) => ({
+              userId: user.id,
+              fullName: user.fullName || user.name || user.displayName,
+              email: user.email,
+              name: user.name,
+              displayName: user.displayName
             }));
+            console.log('Member suggestions:', this.memberSuggestions);
           } else {
             this.memberSuggestions = [];
           }
         },
         error: (err) => {
+          console.error('Error searching users:', err);
           this.memberSuggestions = [];
         }
       });
@@ -199,9 +199,11 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   }
 
   selectMemberSuggestion(user: any): void {
-    this.form.get('memberName')?.setValue(user.fullName || user.email);
-    // Store the selected user's id (if available)
-    this.selectedMemberId = user.id || user.userId || null;
+    const displayName = user.fullName || user.name || user.displayName || user.email;
+    this.form.get('memberName')?.setValue(displayName);
+    // Store the selected user's userId
+    this.selectedMemberId = user.userId ? String(user.userId) : null;
+    console.log('Selected member:', displayName, 'with userId:', this.selectedMemberId);
     this.memberSuggestions = [];
     // Do NOT trigger search here; only update the input and selectedMemberId
   }
@@ -210,6 +212,8 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   // Called on input event of meeting name
   onMeetingNameInput(): void {
     const keyword = this.form.get('keyword')?.value?.trim();
+    // If user edits the input after selection, clear selectedMeetingId
+    this.selectedMeetingId = null;
     if (this.meetingInputTimeout) {
       clearTimeout(this.meetingInputTimeout);
     }
@@ -218,7 +222,7 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       return;
     }
     this.meetingInputTimeout = setTimeout(() => {
-      this.meetingService.searchMeeting({ title: keyword, size: 10 }).subscribe({
+      this.meetingService.searchMeeting({ keyword: keyword, size: 10 }).subscribe({
         next: (res: any) => {
           // API returns paged response, get content
           this.meetingSuggestions = res?.data?.content || [];
@@ -240,6 +244,8 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   // Select a meeting suggestion
   selectMeetingSuggestion(meeting: Meeting): void {
     this.form.get('keyword')?.setValue(meeting.title);
+    // Store the selected meeting's meetingId
+    this.selectedMeetingId = meeting.id || null;
     this.meetingSuggestions = [];
     this.showMeetingDropdown = false;
   }
@@ -341,6 +347,7 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       endDate: ''
     });
     this.selectedMemberId = null;
+    this.selectedMeetingId = null;
     this.page = 0;
     this.loadData();
   }
@@ -361,7 +368,7 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
 
   private loadData(): void {
     this.loading = true;
-    const { keyword, startDate, endDate } = this.form.value;
+    const { startDate, endDate } = this.form.value;
 
     const searchParams: AttendanceLogsSearchParams = {
       page: this.page,
@@ -370,15 +377,17 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       sortDirection: this.sortDirection
     };
 
-    // Always use meeting name as keyword
-    if (keyword && keyword.trim()) {
-      searchParams.keyword = keyword.trim();
+    // If a meeting is selected from dropdown, use its meetingId
+    if (this.selectedMeetingId) {
+      searchParams.meetingId = this.selectedMeetingId;
+      console.log('Searching with meetingId:', this.selectedMeetingId);
     }
     // If a member is selected from dropdown, use their userId
     if (this.selectedMemberId) {
       const userIdNum = Number(this.selectedMemberId);
       if (!isNaN(userIdNum)) {
         searchParams.userId = userIdNum;
+        console.log('Searching with userId:', userIdNum);
       }
     }
     if (startDate) {
@@ -396,14 +405,22 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
       searchParams.endDate = `${day}/${month}/${year}`;
     }
 
+    console.log('Search params:', searchParams);
     this.attendanceLogService.searchAttendanceLogs(searchParams).subscribe({
       next: (res) => {
+        console.log('Search results:', res);
         const data = res?.data;
-        this.rows = data?.content || [];
+        // Transform data to include roomName at root level for easier display
+        const content = data?.content || [];
+        this.rows = content.map((item: any) => ({
+          ...item,
+          roomName: item.meeting?.roomName || '-'
+        }));
         this.totalRecords = data?.totalElements || 0;
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error searching attendance logs:', err);
         this.rows = [];
         this.totalRecords = 0;
         this.loading = false;

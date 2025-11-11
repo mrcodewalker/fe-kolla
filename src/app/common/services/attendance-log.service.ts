@@ -13,6 +13,25 @@ export interface AttendanceLogItem {
   deviceInfo: string;
   location: string;
   present: boolean;
+  meeting?: {
+    id: number;
+    title: string;
+    description: string;
+    meetingCode: string;
+    meetingLink: string;
+    createdByName: string;
+    createdByEmail: string;
+    startTime: string;
+    endTime: string;
+    roomName: string;
+    roomCode: string;
+    departmentName: string;
+    departmentCode: string;
+    membershipStatus: string;
+    meetingRole: string;
+    isComingSoon: boolean;
+    isExpired: boolean;
+  };
 }
 
 export interface AttendanceLogsResponse {

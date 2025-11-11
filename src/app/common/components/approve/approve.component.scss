@@ -1,3 +1,33 @@
+/* Dropdown for meeting and member suggestions */
+.meeting-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  min-width: 320px;
+  width: max(320px, 100%);
+  max-width: 480px;
+  max-height: 260px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin: 4px 0 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+.meeting-dropdown li {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.15s;
+}
+.meeting-dropdown li:hover, .meeting-dropdown li:active {
+  background: #e0f7fa;
+  color: #0e7490;
+}
+
 .approve-container {
   width: 100%;
   background: #f8fafc;

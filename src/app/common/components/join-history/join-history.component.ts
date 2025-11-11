@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { AttendanceLogService, AttendanceLogItem } from '../../services/attendance-log.service';
 
 interface ColumnConfig {
-  field: keyof AttendanceLogItem;
+  field: keyof AttendanceLogItem | 'roomName';
   header: string;
   filterType?: string;
   type?: string;
@@ -73,6 +73,14 @@ export class JoinHistoryComponent implements OnInit {
       defaultVisible: true 
     },
     { 
+      field: 'roomName', 
+      header: 'Tên phòng họp', 
+      filterType: 'text', 
+      visible: true, 
+      defaultVisible: true,
+      sortable: false
+    },
+    { 
       field: 'ipAddress', 
       header: 'Địa chỉ IP', 
       filterType: 'text', 
@@ -92,14 +100,6 @@ export class JoinHistoryComponent implements OnInit {
       filterType: 'text', 
       visible: true, 
       defaultVisible: true 
-    },
-    { 
-      field: 'present', 
-      header: 'Trạng thái', 
-      filterType: 'text', 
-      visible: false, 
-      defaultVisible: false,
-      sortable: false
     }
   ];
 
@@ -225,7 +225,12 @@ export class JoinHistoryComponent implements OnInit {
     this.attendanceLogService.getMyAttendanceLogs(searchParams).subscribe({
       next: (res) => {
         const data = res?.data;
-        this.rows = data?.content || [];
+        // Transform data to include roomName at root level for easier display
+        const content = data?.content || [];
+        this.rows = content.map((item: any) => ({
+          ...item,
+          roomName: item.meeting?.roomName || '-'
+        }));
         this.totalRecords = data?.totalElements || 0;
         this.loading = false;
       },

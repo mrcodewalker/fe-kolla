@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { UserSessionService, UserSessionItem, UserSessionSearchParams } from '../../services/user-session.service';
+import { UserDataService } from '../../services/user-data.service';
 
 interface ColumnConfig {
   field: keyof UserSessionItem;
@@ -32,6 +33,12 @@ export class SuperviseComponent implements OnInit {
 
   showColumnSelector = false;
   componentInitialized = false;
+
+  // Autocomplete for user name
+  userSuggestions: any[] = [];
+  private userInputTimeout: any;
+  selectedUserId: string | null = null;
+  userDropdownHovered = false;
 
   columnConfig: ColumnConfig[] = [
     { 
@@ -119,10 +126,11 @@ export class SuperviseComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
-      keyword: [''],
+      userName: [''],
       startDate: ['']
     });
   }
@@ -133,6 +141,60 @@ export class SuperviseComponent implements OnInit {
     setTimeout(() => {
       this.componentInitialized = true;
     }, 100);
+  }
+
+  // User Name autocomplete methods
+  onUserNameInput(): void {
+    const query = this.form.get('userName')?.value?.trim();
+    // If user edits the input after selection, clear selectedUserId
+    this.selectedUserId = null;
+    if (this.userInputTimeout) {
+      clearTimeout(this.userInputTimeout);
+    }
+    if (!query) {
+      this.userSuggestions = [];
+      return;
+    }
+    this.userInputTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(query).subscribe({
+        next: (res: any) => {
+          console.log('User search response:', res);
+          if (res && res.success && res.data && Array.isArray(res.data)) {
+            this.userSuggestions = res.data.map((user: any) => ({
+              userId: user.id,
+              fullName: user.fullName || user.name || user.displayName,
+              email: user.email,
+              name: user.name,
+              displayName: user.displayName
+            }));
+            console.log('User suggestions:', this.userSuggestions);
+          } else {
+            this.userSuggestions = [];
+          }
+        },
+        error: (err) => {
+          console.error('Error searching users:', err);
+          this.userSuggestions = [];
+        }
+      });
+    }, 2000);
+  }
+
+  onUserInputBlur(): void {
+    setTimeout(() => {
+      if (!this.userDropdownHovered) {
+        this.userSuggestions = [];
+      }
+    }, 200);
+  }
+
+  selectUserSuggestion(user: any): void {
+    const displayName = user.fullName || user.name || user.displayName || user.email;
+    this.form.get('userName')?.setValue(displayName);
+    // Store the selected user's userId
+    this.selectedUserId = user.userId ? String(user.userId) : null;
+    console.log('Selected user:', displayName, 'with userId:', this.selectedUserId);
+    this.userSuggestions = [];
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -180,9 +242,10 @@ export class SuperviseComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      keyword: '',
+      userName: '',
       startDate: ''
     });
+    this.selectedUserId = null;
     this.page = 0;
     this.loadData();
   }
@@ -203,7 +266,7 @@ export class SuperviseComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { keyword, startDate } = this.form.value;
+    const { startDate } = this.form.value;
     
     const searchParams: UserSessionSearchParams = {
       page: this.page,
@@ -212,9 +275,13 @@ export class SuperviseComponent implements OnInit {
       sortDirection: this.sortDirection
     };
 
-    // Add search parameters if they have values
-    if (keyword && keyword.trim()) {
-      searchParams.keyword = keyword.trim();
+    // If a user is selected from dropdown, use their userId
+    if (this.selectedUserId) {
+      const userIdNum = Number(this.selectedUserId);
+      if (!isNaN(userIdNum)) {
+        searchParams.userId = userIdNum;
+        console.log('Searching with userId:', userIdNum);
+      }
     }
     if (startDate) {
       // Convert to dd/MM/yyyy format
@@ -225,14 +292,17 @@ export class SuperviseComponent implements OnInit {
       searchParams.startDate = `${day}/${month}/${year}`;
     }
 
+    console.log('Search params:', searchParams);
     this.userSessionService.searchUserSessions(searchParams).subscribe({
       next: (res) => {
+        console.log('Search results:', res);
         const data = res?.data;
         this.rows = data?.content || [];
         this.totalRecords = data?.totalElements || 0;
         this.loading = false;
       },
       error: (error) => {
+        console.error('Error searching user sessions:', error);
         this.rows = [];
         this.totalRecords = 0;
         this.loading = false;

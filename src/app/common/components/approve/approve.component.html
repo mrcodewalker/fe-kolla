@@ -16,19 +16,57 @@
       <div class="card-body p-4">
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <div class="search-row">
-            <!-- Keyword Field -->
+            <!-- Meeting Name Field -->
             <div class="field-group">
-              <label for="keyword" class="field-label">
-                <span>Từ khóa</span>
+              <label for="meetingName" class="field-label">
+                <span>Tên cuộc họp</span>
               </label>
-              <div class="input-container">
+              <div class="input-container" style="position: relative;">
                 <input 
-                  id="keyword" 
+                  id="meetingName" 
                   type="text" 
                   pInputText 
-                  formControlName="keyword" 
-                  placeholder="Tên, email, tiêu đề..." 
-                  class="input-field" />
+                  formControlName="meetingName" 
+                  placeholder="Nhập tên cuộc họp..." 
+                  class="input-field"
+                  (input)="onMeetingNameInput()"
+                  (blur)="onMeetingInputBlur()"
+                  autocomplete="off"
+                />
+                <!-- Dropdown for meeting suggestions -->
+                <ul *ngIf="meetingSuggestions.length > 0" class="meeting-dropdown">
+                  <li *ngFor="let meeting of meetingSuggestions" (mousedown)="selectMeetingSuggestion(meeting)">
+                    {{ meeting.title }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Member Name Field -->
+            <div class="field-group">
+              <label for="memberName" class="field-label">
+                <span>Tên thành viên</span>
+              </label>
+              <div class="input-container" style="position: relative;">
+                <input
+                  id="memberName"
+                  type="text"
+                  pInputText
+                  formControlName="memberName"
+                  placeholder="Nhập tên thành viên..."
+                  class="input-field"
+                  (input)="onMemberNameInput()"
+                  (blur)="onMemberInputBlur()"
+                  (focus)="memberDropdownHovered = false"
+                  autocomplete="off"
+                />
+                <!-- Dropdown for member suggestions -->
+                <ul *ngIf="memberSuggestions.length > 0" class="meeting-dropdown"
+                    (mouseenter)="memberDropdownHovered = true" (mouseleave)="memberDropdownHovered = false">
+                  <li *ngFor="let user of memberSuggestions" (mousedown)="selectMemberSuggestion(user)">
+                    {{ user.fullName || user.name || user.displayName || user.email }}
+                  </li>
+                </ul>
               </div>
             </div>
 
