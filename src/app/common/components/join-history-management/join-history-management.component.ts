@@ -27,7 +27,6 @@ interface ColumnConfig {
   encapsulation: ViewEncapsulation.None
 })
 export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
-  memberDropdownHovered = false;
   form: FormGroup;
 
   loading = false;
@@ -135,10 +134,12 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
   meetingSuggestions: Meeting[] = [];
   showMeetingDropdown = false;
   private meetingInputTimeout: any;
+  private meetingFilterTimeout: any;
 
   // Autocomplete for member name
   memberSuggestions: any[] = [];
   private memberInputTimeout: any;
+  private memberFilterTimeout: any;
 
   constructor(
     private fb: FormBuilder,
@@ -147,37 +148,73 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
     private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
-      keyword: [''],
-      memberName: [''],
+      keyword: [null],
+      memberName: [null],
       startDate: [''],
       endDate: ['']
     });
   }
 
-  onMemberNameInput(): void {
-    const query = this.form.get('memberName')?.value?.trim();
-    // If user edits the input after selection, clear selectedMemberId
-    this.selectedMemberId = null;
-    if (this.memberInputTimeout) {
-      clearTimeout(this.memberInputTimeout);
+  // Called when dropdown is shown - load initial 10 members
+  onMemberDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.memberSuggestions.length === 0) {
+      this.loadInitialMembers();
     }
-    if (!query) {
-      this.memberSuggestions = [];
+  }
+
+  // Load initial 10 members
+  private loadInitialMembers(): void {
+    // Load with empty query to get first 10 users
+    this.userDataService.searchBasic('').subscribe({
+      next: (res: any) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.memberSuggestions = res.data.slice(0, 10).map((user: any) => ({
+            userId: user.id,
+            fullName: user.fullName || user.name || user.displayName,
+            email: user.email,
+            name: user.name,
+            displayName: user.displayName,
+            displayLabel: user.fullName || user.name || user.displayName || user.email
+          }));
+        } else {
+          this.memberSuggestions = [];
+        }
+      },
+      error: () => {
+        this.memberSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onMemberFilter(event: any): void {
+    const name = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.memberFilterTimeout) {
+      clearTimeout(this.memberFilterTimeout);
+    }
+
+    // If empty, load initial members
+    if (!name) {
+      this.loadInitialMembers();
       return;
     }
-    this.memberInputTimeout = setTimeout(() => {
-      this.userDataService.searchBasic(query).subscribe({
+
+    // Debounce search with 1 second delay
+    this.memberFilterTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(name).subscribe({
         next: (res: any) => {
-          console.log('User search response:', res);
           if (res && res.success && res.data && Array.isArray(res.data)) {
             this.memberSuggestions = res.data.map((user: any) => ({
               userId: user.id,
               fullName: user.fullName || user.name || user.displayName,
               email: user.email,
               name: user.name,
-              displayName: user.displayName
+              displayName: user.displayName,
+              displayLabel: user.fullName || user.name || user.displayName || user.email
             }));
-            console.log('Member suggestions:', this.memberSuggestions);
           } else {
             this.memberSuggestions = [];
           }
@@ -187,67 +224,77 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
           this.memberSuggestions = [];
         }
       });
-    }, 2000);
+    }, 1000);
   }
 
-  onMemberInputBlur(): void {
-    setTimeout(() => {
-      if (!this.memberDropdownHovered) {
-        this.memberSuggestions = [];
-      }
-    }, 200);
-  }
-
-  selectMemberSuggestion(user: any): void {
-    const displayName = user.fullName || user.name || user.displayName || user.email;
-    this.form.get('memberName')?.setValue(displayName);
-    // Store the selected user's userId
-    this.selectedMemberId = user.userId ? String(user.userId) : null;
-    console.log('Selected member:', displayName, 'with userId:', this.selectedMemberId);
-    this.memberSuggestions = [];
-    // Do NOT trigger search here; only update the input and selectedMemberId
+  // Called when a member is selected
+  onMemberSelect(event: any): void {
+    if (event.value) {
+      this.selectedMemberId = event.value.userId ? String(event.value.userId) : null;
+      console.log('Selected member:', event.value.displayLabel, 'with userId:', this.selectedMemberId);
+    } else {
+      // Cleared
+      this.selectedMemberId = null;
+    }
   }
   
-  // (Removed duplicate onMemberNameInput)
-  // Called on input event of meeting name
-  onMeetingNameInput(): void {
-    const keyword = this.form.get('keyword')?.value?.trim();
-    // If user edits the input after selection, clear selectedMeetingId
-    this.selectedMeetingId = null;
-    if (this.meetingInputTimeout) {
-      clearTimeout(this.meetingInputTimeout);
+  // Called when dropdown is shown - load initial 10 random meetings
+  onMeetingDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.meetingSuggestions.length === 0) {
+      this.loadInitialMeetings();
     }
-    if (!keyword) {
-      this.meetingSuggestions = [];
+  }
+
+  // Load initial 10 random meetings
+  private loadInitialMeetings(): void {
+    this.meetingService.searchMeeting({ size: 10 }).subscribe({
+      next: (res: any) => {
+        this.meetingSuggestions = res?.data?.content || [];
+      },
+      error: () => {
+        this.meetingSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onMeetingFilter(event: any): void {
+    const title = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.meetingFilterTimeout) {
+      clearTimeout(this.meetingFilterTimeout);
+    }
+
+    // If empty, load initial meetings
+    if (!title) {
+      this.loadInitialMeetings();
       return;
     }
-    this.meetingInputTimeout = setTimeout(() => {
-      this.meetingService.searchMeeting({ keyword: keyword, size: 10 }).subscribe({
+
+    // Debounce search with 1 second delay
+    this.meetingFilterTimeout = setTimeout(() => {
+      this.meetingService.searchMeeting({ title: title, size: 10 }).subscribe({
         next: (res: any) => {
-          // API returns paged response, get content
           this.meetingSuggestions = res?.data?.content || [];
         },
         error: () => {
           this.meetingSuggestions = [];
         }
       });
-    }, 2000);
+    }, 1000);
   }
 
-  // Hide dropdown after blur, with slight delay to allow click
-  onMeetingInputBlur(): void {
-    setTimeout(() => {
-      this.showMeetingDropdown = false;
-    }, 200);
-  }
-
-  // Select a meeting suggestion
-  selectMeetingSuggestion(meeting: Meeting): void {
-    this.form.get('keyword')?.setValue(meeting.title);
-    // Store the selected meeting's meetingId
-    this.selectedMeetingId = meeting.id || null;
-    this.meetingSuggestions = [];
-    this.showMeetingDropdown = false;
+  // Called when a meeting is selected
+  onMeetingSelect(event: any): void {
+    if (event.value) {
+      this.selectedMeetingId = event.value.id || null;
+      console.log('Selected meeting:', event.value.title, 'with id:', this.selectedMeetingId);
+    } else {
+      // Cleared
+      this.selectedMeetingId = null;
+    }
   }
 
   ngOnInit(): void {
@@ -341,13 +388,15 @@ export class JoinHistoryManagementComponent implements OnInit, AfterViewInit {
 
   onClear(): void {
     this.form.reset({
-      keyword: '',
-      memberName: '',
+      keyword: null,
+      memberName: null,
       startDate: '',
       endDate: ''
     });
     this.selectedMemberId = null;
     this.selectedMeetingId = null;
+    this.meetingSuggestions = [];
+    this.memberSuggestions = [];
     this.page = 0;
     this.loadData();
   }

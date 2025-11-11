@@ -21,26 +21,21 @@
               <label for="userName" class="field-label">
                 <span>Tên</span>
               </label>
-              <div class="input-container" style="position: relative;">
-                <input 
-                  id="userName" 
-                  type="text" 
-                  pInputText 
-                  formControlName="userName" 
-                  placeholder="Nhập tên người dùng..." 
-                  class="input-field"
-                  (input)="onUserNameInput()"
-                  (blur)="onUserInputBlur()"
-                  (focus)="userDropdownHovered = false"
-                  autocomplete="off"
-                />
-                <!-- Dropdown for user suggestions -->
-                <ul *ngIf="userSuggestions.length > 0" class="user-dropdown"
-                    (mouseenter)="userDropdownHovered = true" (mouseleave)="userDropdownHovered = false">
-                  <li *ngFor="let user of userSuggestions" (mousedown)="selectUserSuggestion(user)">
-                    {{ user.fullName || user.name || user.displayName || user.email }}
-                  </li>
-                </ul>
+              <div class="input-container">
+                <p-dropdown
+                  [options]="userSuggestions"
+                  formControlName="userName"
+                  optionLabel="displayLabel"
+                  [filter]="true"
+                  filterBy="displayLabel"
+                  [showClear]="true"
+                  placeholder="Chọn người dùng..."
+                  (onFilter)="onUserFilter($event)"
+                  (onShow)="onUserDropdownShow()"
+                  (onChange)="onUserSelect($event)"
+                  [style]="{'width': '100%'}"
+                  styleClass="input-field">
+                </p-dropdown>
               </div>
             </div>
 

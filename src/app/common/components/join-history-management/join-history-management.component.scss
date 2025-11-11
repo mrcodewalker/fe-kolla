@@ -2783,3 +2783,284 @@ body .p-datepicker .p-datepicker-month:hover,
 body .p-datepicker .p-datepicker-year:hover {
   color: #1e40af !important;
 }
+
+// ===== P-DROPDOWN STYLING - MAXIMUM PRIORITY =====
+:host ::ng-deep .p-dropdown,
+::ng-deep .p-dropdown {
+  width: 100% !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important;
+  height: 2rem !important;
+  
+  &:not(.p-disabled):hover {
+    border-color: #cbd5e1 !important;
+  }
+  
+  &:not(.p-disabled).p-focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  .p-dropdown-label {
+    padding: 0 0.5rem !important;
+    font-size: 0.8125rem !important;
+    background: transparent !important;
+    color: #334155 !important;
+    line-height: 1.75rem !important;
+    
+    &.p-placeholder {
+      color: #94a3b8 !important;
+      font-size: 0.75rem !important;
+    }
+  }
+  
+  .p-dropdown-trigger {
+    width: 2rem !important;
+    background: transparent !important;
+    color: #6b7280 !important;
+    
+    .p-dropdown-trigger-icon {
+      font-size: 0.875rem !important;
+    }
+  }
+  
+  .p-dropdown-clear-icon {
+    right: 2rem !important;
+    color: #6b7280 !important;
+  }
+}
+
+// Dropdown panel (menu)
+::ng-deep .p-dropdown-panel {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  margin-top: 4px !important;
+  z-index: 1000 !important;
+  
+  .p-dropdown-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 0.5rem !important;
+    position: relative !important;
+    
+    .p-dropdown-filter {
+      width: 100% !important;
+      padding: 0.5rem 2.5rem 0.5rem 0.5rem !important;
+      padding-right: 2.5rem !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 4px !important;
+      background: #ffffff !important;
+      font-size: 0.8125rem !important;
+      
+      &:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        outline: none !important;
+      }
+    }
+    
+    .p-dropdown-filter-icon {
+      position: absolute !important;
+      right: 1rem !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      color: #6b7280 !important;
+      pointer-events: none !important;
+    }
+  }
+  
+  .p-dropdown-items-wrapper {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    background: #ffffff !important;
+  }
+  
+  .p-dropdown-items {
+    padding: 0.25rem 0 !important;
+    background: #ffffff !important;
+    
+    .p-dropdown-item {
+      padding: 0.5rem 0.75rem !important;
+      background: #ffffff !important;
+      color: #334155 !important;
+      font-size: 0.8125rem !important;
+      cursor: pointer !important;
+      transition: background 0.15s ease !important;
+      
+      &:hover {
+        background: #e0f7fa !important;
+        color: #0e7490 !important;
+      }
+      
+      &.p-highlight {
+        background: #06b6d4 !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+      }
+      
+      &:focus {
+        background: #e0f7fa !important;
+        color: #0e7490 !important;
+        outline: none !important;
+      }
+    }
+    
+    .p-dropdown-empty-message {
+      padding: 0.75rem !important;
+      text-align: center !important;
+      color: #6b7280 !important;
+      font-style: italic !important;
+      font-size: 0.8125rem !important;
+    }
+  }
+}
+
+// Global override for dropdown
+body .p-dropdown {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+}
+
+body .p-dropdown-panel {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+body .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  
+  &:hover {
+    background-color: #e0f7fa !important;
+    background: #e0f7fa !important;
+  }
+  
+  &.p-highlight {
+    background-color: #06b6d4 !important;
+    background: #06b6d4 !important;
+    color: #ffffff !important;
+  }
+}
+
+// Specific to join-history-management component
+.join-history-management-container {
+  :host ::ng-deep .p-dropdown,
+  ::ng-deep .p-dropdown {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    
+    .p-dropdown-label {
+      background: transparent !important;
+    }
+  }
+}
+
+// Nuclear option for dropdown
+html body app-join-history-management .join-history-management-container .input-container .p-dropdown {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  height: 2rem !important;
+}
+
+html body app-join-history-management .join-history-management-container .input-container .p-dropdown .p-dropdown-label {
+  background-color: transparent !important;
+  background: transparent !important;
+  padding: 0 0.5rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.75rem !important;
+}
+
+html body .p-dropdown-panel {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  z-index: 1000 !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-items {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+  background-color: #e0f7fa !important;
+  background: #e0f7fa !important;
+  color: #0e7490 !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background-color: #06b6d4 !important;
+  background: #06b6d4 !important;
+  color: #ffffff !important;
+}
+
+// ===== DROPDOWN FILTER ICON POSITIONING - MAXIMUM PRIORITY =====
+html body .p-dropdown-panel .p-dropdown-header {
+  position: relative !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0.5rem !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  width: 100% !important;
+  padding-left: 0.5rem !important;
+  padding-right: 2.5rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  font-size: 0.8125rem !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+// Global override for all dropdown filter icons
+.p-dropdown-panel .p-dropdown-header {
+  position: relative !important;
+}
+
+.p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  padding-right: 2.5rem !important;
+}
+
+.p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}

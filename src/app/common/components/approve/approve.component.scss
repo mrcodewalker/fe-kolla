@@ -1006,6 +1006,42 @@
   font-weight: 400 !important;
   font-style: normal !important;
   opacity: 1 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif !important;
+  font-size: 0.75rem !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.5 !important;
+}
+
+// ===== PLACEHOLDER FONT STYLING - SPECIFIC FOR MEMBER DROPDOWN =====
+:host ::ng-deep .p-dropdown .p-dropdown-label.p-placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  color: #9ca3af !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.5 !important;
+}
+
+html body app-approve .p-dropdown .p-dropdown-label.p-placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  color: #9ca3af !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.5 !important;
+}
+
+// Global override for all dropdown placeholders
+::ng-deep .p-dropdown .p-dropdown-label.p-placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  color: #9ca3af !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.5 !important;
 }
 
 // ===== GLOBAL PAGINATION STYLING OVERRIDE =====
@@ -1370,4 +1406,152 @@
       display: none !important;
     }
   }
+}
+
+// ===== DROPDOWN FILTER ICON POSITIONING - MAXIMUM PRIORITY =====
+html body .p-dropdown-panel .p-dropdown-header {
+  position: relative !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0.5rem !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  width: 100% !important;
+  padding-left: 0.5rem !important;
+  padding-right: 2.5rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  font-size: 0.8125rem !important;
+}
+
+html body .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+// Global override for all dropdown filter icons
+.p-dropdown-panel .p-dropdown-header {
+  position: relative !important;
+}
+
+.p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  padding-right: 2.5rem !important;
+}
+
+.p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+// ===== ADDITIONAL OVERRIDES WITH ::ng-deep =====
+:host ::ng-deep .p-dropdown-panel .p-dropdown-header {
+  position: relative !important;
+  padding: 0.5rem !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-container {
+  position: relative !important;
+  width: 100% !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  width: 100% !important;
+  padding-left: 0.5rem !important;
+  padding-right: 2.5rem !important;
+  box-sizing: border-box !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  z-index: 10 !important;
+}
+
+// ===== NUCLEAR OPTION - HIGHEST SPECIFICITY =====
+:host ::ng-deep .approve-container .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+}
+
+html body app-approve .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 1rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  z-index: 10 !important;
+}
+
+html body app-approve .p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  padding-right: 2.5rem !important;
+}
+
+// ===== GLOBAL OVERRIDE - ABSOLUTE MAXIMUM PRIORITY =====
+::ng-deep .p-dropdown-panel {
+  .p-dropdown-header {
+    position: relative !important;
+    
+    .p-dropdown-filter-container {
+      position: relative !important;
+      display: block !important;
+    }
+    
+    .p-dropdown-filter {
+      width: 100% !important;
+      padding-right: 2.5rem !important;
+      display: block !important;
+    }
+    
+    .p-dropdown-filter-icon {
+      position: absolute !important;
+      right: 0.75rem !important;
+      top: 50% !important;
+      left: auto !important;
+      transform: translateY(-50%) !important;
+      margin: 0 !important;
+      margin-left: 0 !important;
+      z-index: 999 !important;
+    }
+  }
+}
+
+// Fallback with even higher specificity
+body .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon,
+body div .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
+  position: absolute !important;
+  right: 0.75rem !important;
+  top: 50% !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  z-index: 999 !important;
 }

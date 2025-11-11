@@ -37,6 +37,7 @@ export class SuperviseComponent implements OnInit {
   // Autocomplete for user name
   userSuggestions: any[] = [];
   private userInputTimeout: any;
+  private userFilterTimeout: any;
   selectedUserId: string | null = null;
   userDropdownHovered = false;
 
@@ -130,7 +131,7 @@ export class SuperviseComponent implements OnInit {
     private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
-      userName: [''],
+      userName: [null],
       startDate: ['']
     });
   }
@@ -143,31 +144,66 @@ export class SuperviseComponent implements OnInit {
     }, 100);
   }
 
-  // User Name autocomplete methods
-  onUserNameInput(): void {
-    const query = this.form.get('userName')?.value?.trim();
-    // If user edits the input after selection, clear selectedUserId
-    this.selectedUserId = null;
-    if (this.userInputTimeout) {
-      clearTimeout(this.userInputTimeout);
+  // Called when dropdown is shown - load initial 10 users
+  onUserDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.userSuggestions.length === 0) {
+      this.loadInitialUsers();
     }
-    if (!query) {
-      this.userSuggestions = [];
+  }
+
+  // Load initial 10 users
+  private loadInitialUsers(): void {
+    // Load with empty query to get first 10 users
+    this.userDataService.searchBasic('').subscribe({
+      next: (res: any) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.userSuggestions = res.data.slice(0, 10).map((user: any) => ({
+            userId: user.id,
+            fullName: user.fullName || user.name || user.displayName,
+            email: user.email,
+            name: user.name,
+            displayName: user.displayName,
+            displayLabel: user.fullName || user.name || user.displayName || user.email
+          }));
+        } else {
+          this.userSuggestions = [];
+        }
+      },
+      error: () => {
+        this.userSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onUserFilter(event: any): void {
+    const name = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.userFilterTimeout) {
+      clearTimeout(this.userFilterTimeout);
+    }
+
+    // If empty, load initial users
+    if (!name) {
+      this.loadInitialUsers();
       return;
     }
-    this.userInputTimeout = setTimeout(() => {
-      this.userDataService.searchBasic(query).subscribe({
+
+    // Debounce search with 1 second delay
+    this.userFilterTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(name).subscribe({
         next: (res: any) => {
-          console.log('User search response:', res);
           if (res && res.success && res.data && Array.isArray(res.data)) {
             this.userSuggestions = res.data.map((user: any) => ({
               userId: user.id,
               fullName: user.fullName || user.name || user.displayName,
               email: user.email,
               name: user.name,
-              displayName: user.displayName
+              displayName: user.displayName,
+              displayLabel: user.fullName || user.name || user.displayName || user.email
             }));
-            console.log('User suggestions:', this.userSuggestions);
           } else {
             this.userSuggestions = [];
           }
@@ -177,24 +213,18 @@ export class SuperviseComponent implements OnInit {
           this.userSuggestions = [];
         }
       });
-    }, 2000);
+    }, 1000);
   }
 
-  onUserInputBlur(): void {
-    setTimeout(() => {
-      if (!this.userDropdownHovered) {
-        this.userSuggestions = [];
-      }
-    }, 200);
-  }
-
-  selectUserSuggestion(user: any): void {
-    const displayName = user.fullName || user.name || user.displayName || user.email;
-    this.form.get('userName')?.setValue(displayName);
-    // Store the selected user's userId
-    this.selectedUserId = user.userId ? String(user.userId) : null;
-    console.log('Selected user:', displayName, 'with userId:', this.selectedUserId);
-    this.userSuggestions = [];
+  // Called when a user is selected
+  onUserSelect(event: any): void {
+    if (event.value) {
+      this.selectedUserId = event.value.userId ? String(event.value.userId) : null;
+      console.log('Selected user:', event.value.displayLabel, 'with userId:', this.selectedUserId);
+    } else {
+      // Cleared
+      this.selectedUserId = null;
+    }
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -242,10 +272,11 @@ export class SuperviseComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      userName: '',
+      userName: null,
       startDate: ''
     });
     this.selectedUserId = null;
+    this.userSuggestions = [];
     this.page = 0;
     this.loadData();
   }

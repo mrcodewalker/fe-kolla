@@ -8,17 +8,23 @@
         placeholder="Tìm theo tên..."
         [(ngModel)]="keyword"
         (ngModelChange)="onSearchKeywordChange($event)"
+        (keyup.enter)="onSearchEnter()"
       />
-      <select
-        class="border rounded px-2 py-1 text-sm"
+      <p-dropdown
+        [options]="departmentSuggestions"
         [(ngModel)]="selectedDepartmentId"
-        (ngModelChange)="onDepartmentChange($event)"
-      >
-        <option value="">Tất cả phòng ban</option>
-        <option *ngFor="let dept of department" [value]="dept.id">
-          {{ dept.departmentName }}
-        </option>
-      </select>
+        optionLabel="departmentName"
+        optionValue="id"
+        [filter]="true"
+        filterBy="departmentName"
+        [showClear]="true"
+        placeholder="Tất cả phòng ban"
+        (onFilter)="onDepartmentFilter($event)"
+        (onShow)="onDepartmentDropdownShow()"
+        (onChange)="onDepartmentChange($event)"
+        [style]="{'width': '100%', 'min-width': '200px'}"
+        styleClass="text-sm">
+      </p-dropdown>
       <button
         class="bg-cyan-700 text-white px-4 py-1.5 rounded hover:bg-cyan-800 transition"
         (click)="openCreateModal()"
@@ -248,8 +254,8 @@
           </button>
           <button
             type="submit"
-            class="px-4 py-1.5 rounded bg-cyan-700 text-white hover:bg-cyan-800"
-            [disabled]="!renameRoomForm.form.valid"
+            class="px-4 py-1.5 rounded bg-cyan-700 text-white hover:bg-cyan-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            [disabled]="!renameRoomForm.form.valid || !hasRenameFormChanged()"
           >
             Xác nhận
           </button>

@@ -3,7 +3,7 @@ import { MessageService } from 'primeng/api';
 import { RoomDataService } from '../../services/room-data.service';
 import { Room } from '../../models/room.model';
 import { Router } from '@angular/router';
-import { DepartmentService } from '../../services/department.service';
+import { DepartmentService, DepartmentItem } from '../../services/department.service';
 import { Department } from '../../models/user.model';
 
 @Component({
@@ -16,6 +16,7 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   renameRoomOldName = '';
   renameRoomNewName = '';
   renameRoomId: number | null = null;
+  initialRenameRoomValues: { name: string; departmentId: number | null } | null = null;
   roomList: Room[] = [];
   // Filters & pagination
   keyword: string = '';
@@ -31,7 +32,10 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   showCreateModal = false;
   newRoomName = '';
   roomMenuIndex: number | null = null;
-  department: Department[] = [];
+  department: Department[] = []; // For create/rename modals
+  departmentSuggestions: DepartmentItem[] = []; // For p-dropdown filter
+  private departmentFilterTimeout: any;
+  private keywordSearchTimeout: any;
   // Confirm dialog state
   showConfirmDialog = false;
   confirmDialogTitle = 'Xác nhận';
@@ -48,6 +52,79 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.loadRooms();
+    this.loadDepartmentSuggestions();
+  }
+
+  // Load departments for p-dropdown filter
+  loadDepartmentSuggestions(): void {
+    this.departmentService.searchDepartments({ size: 100 }).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.departmentSuggestions = res.data;
+        } else {
+          this.departmentSuggestions = [];
+        }
+      },
+      error: () => {
+        this.departmentSuggestions = [];
+      }
+    });
+  }
+
+  // Called when dropdown is shown - load initial departments
+  onDepartmentDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.departmentSuggestions.length === 0) {
+      this.loadInitialDepartments();
+    }
+  }
+
+  // Load initial departments
+  private loadInitialDepartments(): void {
+    this.departmentService.searchDepartments({ size: 10 }).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.departmentSuggestions = res.data.slice(0, 10);
+        } else {
+          this.departmentSuggestions = [];
+        }
+      },
+      error: () => {
+        this.departmentSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onDepartmentFilter(event: any): void {
+    const name = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.departmentFilterTimeout) {
+      clearTimeout(this.departmentFilterTimeout);
+    }
+
+    // If empty, load initial departments
+    if (!name) {
+      this.loadInitialDepartments();
+      return;
+    }
+
+    // Debounce search with 1 second delay
+    this.departmentFilterTimeout = setTimeout(() => {
+      this.departmentService.searchDepartments({ name: name, size: 10 }).subscribe({
+        next: (res) => {
+          if (res && res.success && res.data && Array.isArray(res.data)) {
+            this.departmentSuggestions = res.data;
+          } else {
+            this.departmentSuggestions = [];
+          }
+        },
+        error: () => {
+          this.departmentSuggestions = [];
+        }
+      });
+    }, 1000);
   }
 
   loadRooms() {
@@ -77,14 +154,38 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   onSearchKeywordChange(value: string) {
     this.keyword = value;
     this.page = 0;
+    
+    // Clear previous timeout
+    if (this.keywordSearchTimeout) {
+      clearTimeout(this.keywordSearchTimeout);
+    }
+    
+    // Debounce search with 1 second delay
+    this.keywordSearchTimeout = setTimeout(() => {
+      this.loadRooms();
+    }, 1000);
+  }
+
+  onSearchEnter(): void {
+    // Clear timeout if user presses Enter
+    if (this.keywordSearchTimeout) {
+      clearTimeout(this.keywordSearchTimeout);
+      this.keywordSearchTimeout = null;
+    }
+    
+    // Search immediately on Enter
+    this.page = 0;
     this.loadRooms();
   }
 
-  onDepartmentChange(deptId: number | null | string) {
-    if (deptId === '' || deptId === null) {
-      this.selectedDepartmentId = null;
+  onDepartmentChange(event: any): void {
+    // Handle p-dropdown change event
+    // With optionValue="id", event.value is the id directly (number or null)
+    if (event.value !== null && event.value !== undefined) {
+      this.selectedDepartmentId = Number(event.value);
     } else {
-      this.selectedDepartmentId = Number(deptId);
+      // Cleared or null
+      this.selectedDepartmentId = null;
     }
     this.page = 0;
     this.loadRooms();
@@ -125,6 +226,16 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renameRoomOldName = room.roomName;
     this.renameRoomNewName = room.roomName;
     this.renameRoomId = room.id;
+    
+    // Set initial department ID (default to room's current department)
+    this.renameRoomDepartmentId = room.departmentId || null;
+    
+    // Save initial values for comparison
+    this.initialRenameRoomValues = {
+      name: room.roomName,
+      departmentId: room.departmentId || null
+    };
+    
     this.loadDepartment();
   }
 
@@ -133,6 +244,23 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renameRoomOldName = '';
     this.renameRoomNewName = '';
     this.renameRoomId = null;
+    this.renameRoomDepartmentId = null;
+    this.initialRenameRoomValues = null;
+  }
+
+  // Check if rename form has been modified
+  hasRenameFormChanged(): boolean {
+    if (!this.initialRenameRoomValues) {
+      return false;
+    }
+    
+    const currentName = this.renameRoomNewName?.trim() || '';
+    const currentDepartmentId = this.renameRoomDepartmentId;
+    
+    return (
+      currentName !== this.initialRenameRoomValues.name ||
+      currentDepartmentId !== this.initialRenameRoomValues.departmentId
+    );
   }
 
   submitRenameRoom() {
@@ -140,7 +268,7 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
     const updatedRoom: Partial<Room> = {
       id: this.renameRoomId,
       roomName: this.renameRoomNewName,
-      departmentId: this.renameRoomDepartmentId === null ? undefined : this.renameRoomDepartmentId // giữ nguyên departmentId hiện tại
+      departmentId: this.renameRoomDepartmentId === null ? undefined : this.renameRoomDepartmentId
     };
     this.roomService.update(this.renameRoomId, updatedRoom as Room).subscribe({
       next: () => {

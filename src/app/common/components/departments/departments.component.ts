@@ -36,6 +36,11 @@ export class DepartmentsComponent implements OnInit {
   showColumnSelector = false;
   componentInitialized = false;
 
+  // Autocomplete for department name
+  departmentSuggestions: DepartmentItem[] = [];
+  private departmentFilterTimeout: any;
+  selectedDepartmentId: number | null = null;
+
   // Add Department Dialog
   showAddDialog = false;
   addingDepartment = false;
@@ -44,6 +49,14 @@ export class DepartmentsComponent implements OnInit {
   showEditDialog = false;
   editingDepartment = false;
   editingDepartmentId: number | null = null;
+  initialEditFormValues: { name: string; description: string } | null = null;
+
+  // Confirm Dialog
+  showConfirmDialog = false;
+  confirmDialogTitle = 'Xác nhận';
+  confirmDialogMessage = 'Bạn có chắc chắn muốn thực hiện thao tác này?';
+  confirmDialogType: 'delete' | 'default' = 'delete';
+  pendingDeleteDepartment: DepartmentItem | null = null;
 
   columnConfig: ColumnConfig[] = [
     { 
@@ -83,7 +96,7 @@ export class DepartmentsComponent implements OnInit {
     private departmentService: DepartmentService
   ) {
     this.form = this.fb.group({
-      name: ['']
+      name: [null]
     });
 
     this.addDepartmentForm = this.fb.group({
@@ -103,6 +116,73 @@ export class DepartmentsComponent implements OnInit {
     setTimeout(() => {
       this.componentInitialized = true;
     }, 100);
+  }
+
+  // Called when dropdown is shown - load initial 10 departments
+  onDepartmentDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.departmentSuggestions.length === 0) {
+      this.loadInitialDepartments();
+    }
+  }
+
+  // Load initial 10 departments
+  private loadInitialDepartments(): void {
+    this.departmentService.searchDepartments({ size: 10 }).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.departmentSuggestions = res.data.slice(0, 10);
+        } else {
+          this.departmentSuggestions = [];
+        }
+      },
+      error: () => {
+        this.departmentSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onDepartmentFilter(event: any): void {
+    const name = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.departmentFilterTimeout) {
+      clearTimeout(this.departmentFilterTimeout);
+    }
+
+    // If empty, load initial departments
+    if (!name) {
+      this.loadInitialDepartments();
+      return;
+    }
+
+    // Debounce search with 1 second delay
+    this.departmentFilterTimeout = setTimeout(() => {
+      this.departmentService.searchDepartments({ name: name, size: 10 }).subscribe({
+        next: (res) => {
+          if (res && res.success && res.data && Array.isArray(res.data)) {
+            this.departmentSuggestions = res.data;
+          } else {
+            this.departmentSuggestions = [];
+          }
+        },
+        error: () => {
+          this.departmentSuggestions = [];
+        }
+      });
+    }, 1000);
+  }
+
+  // Called when a department is selected
+  onDepartmentSelect(event: any): void {
+    if (event.value) {
+      this.selectedDepartmentId = event.value.id || null;
+      console.log('Selected department:', event.value.departmentName, 'with id:', this.selectedDepartmentId);
+    } else {
+      // Cleared
+      this.selectedDepartmentId = null;
+    }
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -154,8 +234,10 @@ export class DepartmentsComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      name: ''
+      name: null
     });
+    this.selectedDepartmentId = null;
+    this.departmentSuggestions = [];
     this.page = 0;
     this.loadData();
   }
@@ -178,8 +260,11 @@ export class DepartmentsComponent implements OnInit {
     this.loading = true;
     const { name } = this.form.value;
     
+    // Extract department name from object if it's a DepartmentItem, otherwise use as string
+    const departmentName = name && typeof name === 'object' ? name.departmentName : (name || '');
+    
     // If no search term, load all departments
-    if (!name || name.trim() === '') {
+    if (!departmentName || departmentName.trim() === '') {
       console.log('Loading all departments...');
       this.departmentService.getAllDepartments().subscribe({
         next: (res) => {
@@ -205,7 +290,7 @@ export class DepartmentsComponent implements OnInit {
     } else {
       // Search with name parameter
       const searchParams: DepartmentSearchParams = {
-        name: name.trim(),
+        name: departmentName.trim(),
         sortBy: this.sortBy,
         sortDirection: this.sortDirection
       };
@@ -359,16 +444,35 @@ export class DepartmentsComponent implements OnInit {
     this.showEditDialog = true;
     
     // Pre-fill the form with current department data
-    this.editDepartmentForm.patchValue({
+    const initialValues = {
       name: department.departmentName,
       description: '' // We don't have description in the current interface, but setting up for future
-    });
+    };
+    
+    this.editDepartmentForm.patchValue(initialValues);
+    
+    // Save initial values for comparison
+    this.initialEditFormValues = { ...initialValues };
   }
 
   closeEditDepartmentDialog(): void {
     this.showEditDialog = false;
     this.editingDepartmentId = null;
     this.editDepartmentForm.reset();
+    this.initialEditFormValues = null;
+  }
+
+  // Check if form has been modified
+  hasFormChanged(): boolean {
+    if (!this.initialEditFormValues) {
+      return false;
+    }
+    
+    const currentValues = this.editDepartmentForm.value;
+    return (
+      currentValues.name !== this.initialEditFormValues.name ||
+      currentValues.description !== this.initialEditFormValues.description
+    );
   }
 
   onEditDepartment(): void {
@@ -407,22 +511,42 @@ export class DepartmentsComponent implements OnInit {
   // Delete Department Method
   deleteDepartment(department: DepartmentItem): void {
     // Show confirmation dialog
-    const confirmed = confirm(`Bạn có chắc chắn muốn xóa phòng ban "${department.departmentName}"?`);
-    
-    if (confirmed) {
-      this.loading = true;
-      this.departmentService.deleteDepartment(department.id).subscribe({
-        next: (response) => {
-          console.log('Department deleted successfully:', response);
-          // Reload data to refresh the list
-          this.loadData();
-        },
-        error: (error) => {
-          console.error('Error deleting department:', error);
-          this.loading = false;
-          // You might want to show an error message to the user here
-        }
-      });
+    this.pendingDeleteDepartment = department;
+    this.confirmDialogTitle = 'Xác nhận xóa';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn xóa phòng ban "${department.departmentName}"?`;
+    this.confirmDialogType = 'delete';
+    this.showConfirmDialog = true;
+  }
+
+  // Confirm Dialog Handlers
+  onConfirmDialogConfirmed(): void {
+    if (this.pendingDeleteDepartment == null) {
+      this.showConfirmDialog = false;
+      return;
     }
+
+    const department = this.pendingDeleteDepartment;
+    this.loading = true;
+    this.departmentService.deleteDepartment(department.id).subscribe({
+      next: (response) => {
+        console.log('Department deleted successfully:', response);
+        // Reload data to refresh the list
+        this.loadData();
+        this.pendingDeleteDepartment = null;
+        this.showConfirmDialog = false;
+      },
+      error: (error) => {
+        console.error('Error deleting department:', error);
+        this.loading = false;
+        this.pendingDeleteDepartment = null;
+        this.showConfirmDialog = false;
+        // You might want to show an error message to the user here
+      }
+    });
+  }
+
+  onConfirmDialogCancelled(): void {
+    this.showConfirmDialog = false;
+    this.pendingDeleteDepartment = null;
   }
 }

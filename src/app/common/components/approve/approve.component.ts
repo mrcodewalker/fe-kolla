@@ -40,15 +40,24 @@ export class ApproveComponent implements OnInit {
   showColumnSelector = false;
   componentInitialized = false;
 
+  // Confirm Dialog
+  showConfirmDialog = false;
+  confirmDialogTitle = 'Xác nhận';
+  confirmDialogMessage = 'Bạn có chắc chắn muốn thực hiện thao tác này?';
+  confirmDialogType: 'delete' | 'default' = 'delete';
+  pendingRejectMember: MemberItem | Member | null = null;
+
   // Autocomplete for meeting name
   meetingSuggestions: Meeting[] = [];
   showMeetingDropdown = false;
   private meetingInputTimeout: any;
+  private meetingFilterTimeout: any;
   selectedMeetingIdFromSearch: number | null = null;
 
   // Autocomplete for member name
   memberSuggestions: any[] = [];
   private memberInputTimeout: any;
+  private memberFilterTimeout: any;
   selectedUserIdFromSearch: string | null = null;
   memberDropdownHovered = false;
 
@@ -149,8 +158,8 @@ export class ApproveComponent implements OnInit {
     private userDataService: UserDataService
   ) {
     this.form = this.fb.group({
-      meetingName: [''],
-      memberName: [''],
+      meetingName: [null],
+      memberName: [null],
       userId: [''],
       meetingId: [''],
       roleId: [''],
@@ -167,75 +176,125 @@ export class ApproveComponent implements OnInit {
     }, 100);
   }
 
-  // Meeting Name autocomplete methods
-  onMeetingNameInput(): void {
-    const keyword = this.form.get('meetingName')?.value?.trim();
-    // If user edits the input after selection, clear selectedMeetingIdFromSearch
-    this.selectedMeetingIdFromSearch = null;
-    if (this.meetingInputTimeout) {
-      clearTimeout(this.meetingInputTimeout);
+  // Called when dropdown is shown - load initial 10 random meetings
+  onMeetingDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.meetingSuggestions.length === 0) {
+      this.loadInitialMeetings();
     }
-    if (!keyword) {
-      this.meetingSuggestions = [];
+  }
+
+  // Load initial 10 random meetings
+  private loadInitialMeetings(): void {
+    this.meetingService.searchMeeting({ size: 10 }).subscribe({
+      next: (res: any) => {
+        this.meetingSuggestions = res?.data?.content || [];
+      },
+      error: () => {
+        this.meetingSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onMeetingFilter(event: any): void {
+    const title = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.meetingFilterTimeout) {
+      clearTimeout(this.meetingFilterTimeout);
+    }
+
+    // If empty, load initial meetings
+    if (!title) {
+      this.loadInitialMeetings();
       return;
     }
-    this.meetingInputTimeout = setTimeout(() => {
-      this.meetingService.searchMeeting({ keyword: keyword, size: 10 }).subscribe({
+
+    // Debounce search with 1 second delay
+    this.meetingFilterTimeout = setTimeout(() => {
+      this.meetingService.searchMeeting({ title: title, size: 10 }).subscribe({
         next: (res: any) => {
-          console.log('Meeting search response:', res);
-          // API returns paged response, get content
           this.meetingSuggestions = res?.data?.content || [];
-          console.log('Meeting suggestions:', this.meetingSuggestions);
         },
-        error: (err) => {
-          console.error('Error searching meetings:', err);
+        error: () => {
           this.meetingSuggestions = [];
         }
       });
-    }, 2000);
+    }, 1000);
   }
 
-  onMeetingInputBlur(): void {
-    setTimeout(() => {
-      this.showMeetingDropdown = false;
-      this.meetingSuggestions = [];
-    }, 200);
-  }
-
-  selectMeetingSuggestion(meeting: Meeting): void {
-    this.form.get('meetingName')?.setValue(meeting.title);
-    // Store the selected meeting's meetingId
-    this.selectedMeetingIdFromSearch = meeting.id || null;
-    console.log('Selected meeting:', meeting.title, 'with meetingId:', this.selectedMeetingIdFromSearch);
-    this.meetingSuggestions = [];
-    this.showMeetingDropdown = false;
-  }
-
-  // Member Name autocomplete methods
-  onMemberNameInput(): void {
-    const query = this.form.get('memberName')?.value?.trim();
-    // If user edits the input after selection, clear selectedUserIdFromSearch
-    this.selectedUserIdFromSearch = null;
-    if (this.memberInputTimeout) {
-      clearTimeout(this.memberInputTimeout);
+  // Called when a meeting is selected
+  onMeetingSelect(event: any): void {
+    if (event.value) {
+      this.selectedMeetingIdFromSearch = event.value.id || null;
+      console.log('Selected meeting:', event.value.title, 'with id:', this.selectedMeetingIdFromSearch);
+    } else {
+      // Cleared
+      this.selectedMeetingIdFromSearch = null;
     }
-    if (!query) {
-      this.memberSuggestions = [];
+  }
+
+  // Called when dropdown is shown - load initial 10 members
+  onMemberDropdownShow(): void {
+    // Only load if suggestions are empty
+    if (this.memberSuggestions.length === 0) {
+      this.loadInitialMembers();
+    }
+  }
+
+  // Load initial 10 members
+  private loadInitialMembers(): void {
+    // Load with empty query to get first 10 users
+    this.userDataService.searchBasic('').subscribe({
+      next: (res: any) => {
+        if (res && res.success && res.data && Array.isArray(res.data)) {
+          this.memberSuggestions = res.data.slice(0, 10).map((user: any) => ({
+            userId: user.id,
+            fullName: user.fullName || user.name || user.displayName,
+            email: user.email,
+            name: user.name,
+            displayName: user.displayName,
+            displayLabel: user.fullName || user.name || user.displayName || user.email
+          }));
+        } else {
+          this.memberSuggestions = [];
+        }
+      },
+      error: () => {
+        this.memberSuggestions = [];
+      }
+    });
+  }
+
+  // Called when user types in the filter box
+  onMemberFilter(event: any): void {
+    const name = event.filter?.trim();
+    
+    // Clear previous timeout
+    if (this.memberFilterTimeout) {
+      clearTimeout(this.memberFilterTimeout);
+    }
+
+    // If empty, load initial members
+    if (!name) {
+      this.loadInitialMembers();
       return;
     }
-    this.memberInputTimeout = setTimeout(() => {
-      this.userDataService.searchBasic(query).subscribe({
+
+    // Debounce search with 1 second delay
+    this.memberFilterTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(name).subscribe({
         next: (res: any) => {
-          console.log('User search response:', res);
           if (res && res.success && res.data && Array.isArray(res.data)) {
             this.memberSuggestions = res.data.map((user: any) => ({
               userId: user.id,
               fullName: user.fullName || user.name || user.displayName,
               email: user.email,
               name: user.name,
-              displayName: user.displayName
+              displayName: user.displayName,
+              displayLabel: user.fullName || user.name || user.displayName || user.email
             }));
-            console.log('Member suggestions:', this.memberSuggestions);
           } else {
             this.memberSuggestions = [];
           }
@@ -245,24 +304,18 @@ export class ApproveComponent implements OnInit {
           this.memberSuggestions = [];
         }
       });
-    }, 2000);
+    }, 1000);
   }
 
-  onMemberInputBlur(): void {
-    setTimeout(() => {
-      if (!this.memberDropdownHovered) {
-        this.memberSuggestions = [];
-      }
-    }, 200);
-  }
-
-  selectMemberSuggestion(user: any): void {
-    const displayName = user.fullName || user.name || user.displayName || user.email;
-    this.form.get('memberName')?.setValue(displayName);
-    // Store the selected user's userId
-    this.selectedUserIdFromSearch = user.userId ? String(user.userId) : null;
-    console.log('Selected member:', displayName, 'with userId:', this.selectedUserIdFromSearch);
-    this.memberSuggestions = [];
+  // Called when a member is selected
+  onMemberSelect(event: any): void {
+    if (event.value) {
+      this.selectedUserIdFromSearch = event.value.userId ? String(event.value.userId) : null;
+      console.log('Selected member:', event.value.displayLabel, 'with userId:', this.selectedUserIdFromSearch);
+    } else {
+      // Cleared
+      this.selectedUserIdFromSearch = null;
+    }
   }
 
   get displayedColumns(): ColumnConfig[] {
@@ -310,8 +363,8 @@ export class ApproveComponent implements OnInit {
 
   onClear(): void {
     this.form.reset({
-      meetingName: '',
-      memberName: '',
+      meetingName: null,
+      memberName: null,
       userId: '',
       meetingId: '',
       roleId: '',
@@ -319,6 +372,8 @@ export class ApproveComponent implements OnInit {
     });
     this.selectedMeetingIdFromSearch = null;
     this.selectedUserIdFromSearch = null;
+    this.meetingSuggestions = [];
+    this.memberSuggestions = [];
     this.page = 0;
     this.loadData();
   }
@@ -484,10 +539,29 @@ export class ApproveComponent implements OnInit {
   }
 
   rejectRequest(req: MemberItem | Member) {
+    // Show confirmation dialog
+    this.pendingRejectMember = req;
+    this.confirmDialogTitle = 'Xác nhận xóa';
+    const memberName = 'name' in req ? req.name : (req as MemberItem).name || 'thành viên này';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn xóa thành viên "${memberName}"?`;
+    this.confirmDialogType = 'delete';
+    this.showConfirmDialog = true;
+  }
+
+  // Confirm Dialog Handlers
+  onConfirmDialogConfirmed(): void {
+    if (this.pendingRejectMember == null) {
+      this.showConfirmDialog = false;
+      return;
+    }
+
+    const req = this.pendingRejectMember;
     const meetingId = 'meetingId' in req ? req.meetingId : this.selectedMeetingId;
     
     if (!meetingId) {
       console.error('Không tìm thấy meetingId');
+      this.pendingRejectMember = null;
+      this.showConfirmDialog = false;
       return;
     }
     
@@ -508,11 +582,20 @@ export class ApproveComponent implements OnInit {
         this.loadData();
         // Legacy compatibility
         this.joinedRequest = this.joinedRequest.filter((r) => r.id !== req.id);
+        this.pendingRejectMember = null;
+        this.showConfirmDialog = false;
       },
       error: (err) => {
         console.error('Lỗi từ chối yêu cầu:', err);
+        this.pendingRejectMember = null;
+        this.showConfirmDialog = false;
       }
     });
+  }
+
+  onConfirmDialogCancelled(): void {
+    this.showConfirmDialog = false;
+    this.pendingRejectMember = null;
   }
 
   getRequestsForRoom(roomId: number) {

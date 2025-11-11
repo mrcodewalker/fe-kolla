@@ -41,6 +41,14 @@ export class ManagementComponent implements OnInit {
   editingUser: UserManagementItem | null = null;
   componentInitialized = false;
   addSubmitting = false;
+  initialEditFormValues: any = null;
+
+  // Confirm Dialog
+  showConfirmDialog = false;
+  confirmDialogTitle = 'Xác nhận';
+  confirmDialogMessage = 'Bạn có chắc chắn muốn thực hiện thao tác này?';
+  confirmDialogType: 'delete' | 'default' = 'delete';
+  pendingDeleteUser: UserManagementItem | null = null;
 
   departments: DepartmentItem[] = [];
   roles: RoleItem[] = [];
@@ -323,7 +331,7 @@ export class ManagementComponent implements OnInit {
     const selectedDepartment = this.departments.find(d => d.departmentName === user.department);
     const selectedRole = this.roles.find(r => r.name === user.role);
     
-    this.editForm.patchValue({
+    const initialValues = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -339,7 +347,13 @@ export class ManagementComponent implements OnInit {
       roleId: selectedRole?.id || null,
       degree: user.degree || '',
       active: user.active
-    });
+    };
+    
+    this.editForm.patchValue(initialValues);
+    
+    // Save initial values for comparison
+    this.initialEditFormValues = JSON.parse(JSON.stringify(initialValues));
+    
     this.showEditDialog = true;
   }
 
@@ -353,6 +367,8 @@ export class ManagementComponent implements OnInit {
         next: () => {
           this.showEditDialog = false;
           this.editingUser = null;
+          this.editForm.reset();
+          this.initialEditFormValues = null;
           this.loadData();
         },
         error: (error) => {
@@ -366,19 +382,71 @@ export class ManagementComponent implements OnInit {
     this.showEditDialog = false;
     this.editingUser = null;
     this.editForm.reset();
+    this.initialEditFormValues = null;
+  }
+
+  // Check if form has been modified
+  hasFormChanged(): boolean {
+    if (!this.initialEditFormValues) {
+      return false;
+    }
+    
+    const currentValues = this.editForm.value;
+    const initialValues = this.initialEditFormValues;
+    
+    // Compare all form fields
+    return (
+      currentValues.email !== initialValues.email ||
+      currentValues.name !== initialValues.name ||
+      currentValues.imgUrl !== initialValues.imgUrl ||
+      currentValues.position !== initialValues.position ||
+      currentValues.userCode !== initialValues.userCode ||
+      currentValues.dob !== initialValues.dob ||
+      currentValues.bankName !== initialValues.bankName ||
+      currentValues.bankNumber !== initialValues.bankNumber ||
+      currentValues.address !== initialValues.address ||
+      currentValues.phoneNumber !== initialValues.phoneNumber ||
+      currentValues.departmentId !== initialValues.departmentId ||
+      currentValues.roleId !== initialValues.roleId ||
+      currentValues.degree !== initialValues.degree ||
+      currentValues.active !== initialValues.active
+    );
   }
 
   onDelete(user: UserManagementItem): void {
-    if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${user.name}"?`)) {
-      this.userManagementService.deleteUser(user.id).subscribe({
-        next: () => {
-          this.loadData();
-        },
-        error: (error) => {
-          console.error('Error deleting user:', error);
-        }
-      });
+    // Show confirmation dialog
+    this.pendingDeleteUser = user;
+    this.confirmDialogTitle = 'Xác nhận xóa';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn xóa tài khoản "${user.name}"?`;
+    this.confirmDialogType = 'delete';
+    this.showConfirmDialog = true;
+  }
+
+  // Confirm Dialog Handlers
+  onConfirmDialogConfirmed(): void {
+    if (this.pendingDeleteUser == null) {
+      this.showConfirmDialog = false;
+      return;
     }
+
+    const user = this.pendingDeleteUser;
+    this.userManagementService.deleteUser(user.id).subscribe({
+      next: () => {
+        this.loadData();
+        this.pendingDeleteUser = null;
+        this.showConfirmDialog = false;
+      },
+      error: (error) => {
+        console.error('Error deleting user:', error);
+        this.pendingDeleteUser = null;
+        this.showConfirmDialog = false;
+      }
+    });
+  }
+
+  onConfirmDialogCancelled(): void {
+    this.showConfirmDialog = false;
+    this.pendingDeleteUser = null;
   }
 
   getDepartmentName(departmentId: number): string {

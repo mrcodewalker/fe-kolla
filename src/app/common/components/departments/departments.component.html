@@ -22,14 +22,20 @@
                 <span>Tên Phòng ban</span>
               </label>
               <div class="input-container">
-                <input
-                  id="name"
-                  type="text"
-                  pInputText
+                <p-dropdown
+                  [options]="departmentSuggestions"
                   formControlName="name"
-                  placeholder="Nhập tên phòng ban..."
-                  class="input-field"
-                />
+                  optionLabel="departmentName"
+                  [filter]="true"
+                  filterBy="departmentName"
+                  [showClear]="true"
+                  placeholder="Chọn phòng ban..."
+                  (onFilter)="onDepartmentFilter($event)"
+                  (onShow)="onDepartmentDropdownShow()"
+                  (onChange)="onDepartmentSelect($event)"
+                  [style]="{'width': '100%'}"
+                  styleClass="input-field">
+                </p-dropdown>
               </div>
             </div>
 
@@ -453,7 +459,7 @@
               label="Cập nhật"
               icon="pi pi-check"
               class="p-button-primary dialog-submit-btn"
-              [disabled]="editDepartmentForm.invalid || editingDepartment"
+              [disabled]="editDepartmentForm.invalid || editingDepartment || !hasFormChanged()"
               [loading]="editingDepartment"
             ></button>
           </div>
@@ -481,4 +487,22 @@
       </div>
     </div>
   </p-dialog> -->
+
+  <!-- Confirm Dialog -->
+  <app-confirm-dialog
+    [showDialog]="showConfirmDialog"
+    [title]="confirmDialogTitle"
+    [message]="confirmDialogMessage"
+    confirmText="Xác nhận"
+    cancelText="Hủy"
+    [confirmButtonClass]="
+      confirmDialogType === 'delete'
+        ? 'bg-red-600 hover:bg-red-700'
+        : 'bg-cyan-600 hover:bg-cyan-700'
+    "
+    (confirmed)="onConfirmDialogConfirmed()"
+    (cancelled)="onConfirmDialogCancelled()"
+    (showDialogChange)="showConfirmDialog = $event"
+  >
+  </app-confirm-dialog>
 </div>
