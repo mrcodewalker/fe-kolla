@@ -14,6 +14,9 @@ import { MessageService, MessageItem } from '../../services/message.service';
 import { Room } from '../../models/room.model';
 import { Meeting } from '../../models/meeting.model';
 import { MeetingMember, MembershipRequest, Role } from '../../models/member.model';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-room-detail',
@@ -88,6 +91,9 @@ export class RoomDetailComponent implements OnInit {
   totalMessages = 0;
   hasMoreMessages = true;
   private lastTriggeredMessageIndex = -1;
+  
+  // User cache to avoid multiple API calls for same user
+  private userCache: Map<number, { name: string; email: string }> = new Map();
 
   sendMessage() {
     if (this.newMessage.trim() && this.selectedMeeting) {
@@ -1207,36 +1213,97 @@ export class RoomDetailComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         if (response.success && response.data) {
-          const newMessages = (response.data.content || []).map((msg: MessageItem) => ({
-            ...msg,
-            isMine: msg.senderId === this.currentUserId
-          }));
+          const newMessages = response.data.content || [];
           
-          if (reset) {
-            this.messages = newMessages.reverse(); // Reverse to show oldest first
-          } else {
-            // Prepend new messages (older messages) to the beginning
-            this.messages = [...newMessages.reverse(), ...this.messages];
-          }
-          
+          // Update pagination info
           this.totalMessages = response.data.totalElements || 0;
           this.hasMoreMessages = !response.data.last;
           this.messagePage++;
           
-          // Scroll to bottom after loading initial messages
-          if (reset) {
-            setTimeout(() => {
-              this.scrollToBottom();
-            }, 100);
+          // Get unique sender IDs that we don't have in cache
+          const uniqueSenderIds = [...new Set(newMessages.map((msg: MessageItem) => msg.senderId))];
+          const senderIdsToFetch = uniqueSenderIds.filter(id => !this.userCache.has(id));
+          
+          // Load user information for all senders
+          if (senderIdsToFetch.length > 0) {
+            const userRequests = senderIdsToFetch.map(senderId => 
+              this.userDataService.getById(senderId).pipe(
+                map((userResponse: any) => {
+                  // Handle both direct User object and { success: true, data: User } format
+                  const user = userResponse.data || userResponse;
+                  return { senderId, user };
+                }),
+                catchError(error => {
+                  console.error(`Error loading user ${senderId}:`, error);
+                  return of({ senderId, user: null });
+                })
+              )
+            );
+            
+            forkJoin(userRequests).subscribe({
+              next: (userResults) => {
+                // Cache user information
+                userResults.forEach(({ senderId, user }) => {
+                  if (user) {
+                    this.userCache.set(senderId, {
+                      name: user.name || 'Người dùng',
+                      email: user.email || ''
+                    });
+                  }
+                });
+                
+                // Map messages with user information
+                this.processMessages(newMessages, reset);
+              },
+              error: (error) => {
+                console.error('Error loading user information:', error);
+                // Still process messages even if user loading fails
+                this.processMessages(newMessages, reset);
+              }
+            });
+          } else {
+            // All users are already cached, process messages directly
+            this.processMessages(newMessages, reset);
           }
+        } else {
+          this.loadingMessages = false;
         }
-        this.loadingMessages = false;
       },
       error: (error) => {
         console.error('Error loading messages:', error);
         this.loadingMessages = false;
       }
     });
+  }
+
+  private processMessages(newMessages: MessageItem[], reset: boolean) {
+    const processedMessages = newMessages.map((msg: MessageItem) => {
+      const isMine = msg.senderId === this.currentUserId;
+      const userInfo = this.userCache.get(msg.senderId);
+      
+      return {
+        ...msg,
+        isMine,
+        senderName: isMine ? undefined : (userInfo?.name || msg.senderName || 'Người dùng'),
+        senderEmail: isMine ? undefined : (userInfo?.email || msg.senderEmail || '')
+      };
+    });
+    
+    if (reset) {
+      this.messages = processedMessages.reverse(); // Reverse to show oldest first
+    } else {
+      // Prepend new messages (older messages) to the beginning
+      this.messages = [...processedMessages.reverse(), ...this.messages];
+    }
+    
+    this.loadingMessages = false;
+    
+    // Scroll to bottom after loading initial messages
+    if (reset) {
+      setTimeout(() => {
+        this.scrollToBottom();
+      }, 100);
+    }
   }
 
   onMessageScroll(event: Event) {

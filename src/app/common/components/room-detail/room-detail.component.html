@@ -559,24 +559,64 @@
                 'justify-end': msg.isMine,
                 'justify-start': !msg.isMine
               }"
-              class="flex message-item"
+              class="flex items-start gap-2 message-item"
               [attr.data-index]="i"
             >
-              <div
-                [ngClass]="
-                  msg.isMine
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                "
-                class="rounded-lg px-3 py-2 max-w-[70%] text-sm"
+              <!-- Avatar icon -->
+              <div 
+                *ngIf="!msg.isMine"
+                class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"
               >
-                <div class="break-words">{{ msg.message }}</div>
+                <i class="fa-solid fa-user text-gray-600 text-sm"></i>
+              </div>
+              
+              <div class="flex flex-col max-w-[70%]">
+                <!-- Sender info -->
                 <div 
-                  [ngClass]="msg.isMine ? 'text-cyan-100' : 'text-gray-500'"
-                  class="text-xs mt-1"
+                  *ngIf="!msg.isMine"
+                  class="mb-1"
                 >
-                  {{ formatMessageDate(msg.sentAt) }}
+                  <div class="text-xs font-semibold text-gray-700">
+                    {{ msg.senderName || 'Người dùng' }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ msg.senderEmail || '' }}
+                  </div>
                 </div>
+                <div 
+                  *ngIf="msg.isMine"
+                  class="mb-1 text-right"
+                >
+                  <div class="text-xs font-semibold text-cyan-700">
+                    me
+                  </div>
+                </div>
+                
+                <!-- Message content -->
+                <div
+                  [ngClass]="
+                    msg.isMine
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-gray-200 text-gray-700'
+                  "
+                  class="rounded-lg px-3 py-2 text-sm"
+                >
+                  <div class="break-words">{{ msg.message }}</div>
+                  <div 
+                    [ngClass]="msg.isMine ? 'text-cyan-100' : 'text-gray-500'"
+                    class="text-xs mt-1"
+                  >
+                    {{ formatMessageDate(msg.sentAt) }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Avatar icon for my messages -->
+              <div 
+                *ngIf="msg.isMine"
+                class="flex-shrink-0 w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center"
+              >
+                <i class="fa-solid fa-user text-cyan-600 text-sm"></i>
               </div>
             </div>
             <div *ngIf="loadingMessages && messages.length > 0" class="text-center py-2">
@@ -589,21 +629,6 @@
             <div *ngIf="messages.length === 0 && !loadingMessages" class="text-center py-8 text-gray-400 text-sm">
               Chưa có tin nhắn nào
             </div>
-          </div>
-          <div class="border-t p-3 flex items-center gap-2">
-            <input
-              type="text"
-              [(ngModel)]="newMessage"
-              placeholder="Nhập tin nhắn..."
-              class="flex-1 border rounded px-2 py-1 text-sm"
-              (keydown.enter)="sendMessage()"
-            />
-            <button
-              class="px-3 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-700 transition-colors"
-              (click)="sendMessage()"
-            >
-              Gửi
-            </button>
           </div>
         </div>
       </ng-container>
