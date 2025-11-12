@@ -83,6 +83,8 @@ export class RoomDetailComponent implements OnInit {
   messages: Array<MessageItem & { isMine: boolean }> = [];
   newMessage: string = '';
   currentUserId: number | null = null;
+  currentUserName: string = '';
+  currentUserEmail: string = '';
   
   // Message loading properties
   loadingMessages = false;
@@ -158,10 +160,12 @@ export class RoomDetailComponent implements OnInit {
     const userRole = this.authService.getCurrentUserRole();
     this.isAdmin = userRole === 'ADMIN';
 
-    // Get current user ID
+    // Get current user ID and info
     const currentUser = this.authService.getCurrentUser();
     if (currentUser && currentUser.id) {
       this.currentUserId = currentUser.id;
+      this.currentUserName = currentUser.name || '';
+      this.currentUserEmail = currentUser.email || '';
     }
 
     const roomId = this.route.snapshot.paramMap.get('id');
