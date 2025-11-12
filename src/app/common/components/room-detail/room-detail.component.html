@@ -545,14 +545,22 @@
 
       <ng-container *ngIf="mainTab === 'messages'">
         <div class="flex flex-col h-[75vh] border rounded shadow bg-white">
-          <div class="flex-1 overflow-y-auto p-4 space-y-2">
+          <div 
+            class="flex-1 overflow-y-auto p-4 space-y-2 message-list-container"
+            (scroll)="onMessageScroll($event)"
+          >
+            <div *ngIf="loadingMessages && messages.length === 0" class="text-center py-4">
+              <i class="pi pi-spin pi-spinner text-cyan-700"></i>
+              <span class="ml-2 text-sm text-gray-500">Đang tải tin nhắn...</span>
+            </div>
             <div
-              *ngFor="let msg of messages"
+              *ngFor="let msg of messages; let i = index"
               [ngClass]="{
                 'justify-end': msg.isMine,
                 'justify-start': !msg.isMine
               }"
-              class="flex"
+              class="flex message-item"
+              [attr.data-index]="i"
             >
               <div
                 [ngClass]="
@@ -562,8 +570,24 @@
                 "
                 class="rounded-lg px-3 py-2 max-w-[70%] text-sm"
               >
-                {{ msg.text }}
+                <div class="break-words">{{ msg.message }}</div>
+                <div 
+                  [ngClass]="msg.isMine ? 'text-cyan-100' : 'text-gray-500'"
+                  class="text-xs mt-1"
+                >
+                  {{ formatMessageDate(msg.sentAt) }}
+                </div>
               </div>
+            </div>
+            <div *ngIf="loadingMessages && messages.length > 0" class="text-center py-2">
+              <i class="pi pi-spin pi-spinner text-cyan-700"></i>
+              <span class="ml-2 text-sm text-gray-500">Đang tải thêm...</span>
+            </div>
+            <div *ngIf="hasMoreMessages === false && messages.length > 0" class="text-center py-2 text-xs text-gray-400">
+              Đã hiển thị tất cả tin nhắn
+            </div>
+            <div *ngIf="messages.length === 0 && !loadingMessages" class="text-center py-8 text-gray-400 text-sm">
+              Chưa có tin nhắn nào
             </div>
           </div>
           <div class="border-t p-3 flex items-center gap-2">
@@ -575,7 +599,7 @@
               (keydown.enter)="sendMessage()"
             />
             <button
-              class="px-3 py-1 rounded bg-cyan-600 text-white"
+              class="px-3 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-700 transition-colors"
               (click)="sendMessage()"
             >
               Gửi
@@ -892,39 +916,33 @@
     
     <!-- Search box -->
     <div class="mb-4">
-      <div class="relative">
-        <input
-          type="text"
-          [(ngModel)]="searchUserQuery"
-          (input)="onSearchUsers()"
-          placeholder="Tìm kiếm người dùng theo tên hoặc email..."
-          class="w-full border rounded px-3 py-2 text-sm pr-10"
-        />
-        <i class="pi pi-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-        
-        <!-- Search results dropdown -->
-        <div
-          *ngIf="searchUserResults.length > 0 && searchUserQuery"
-          class="absolute top-full left-0 right-0 mt-1 border rounded max-h-65 overflow-y-auto bg-white shadow-lg z-10"
-        >
-          <div class="text-xs text-gray-600 px-3 py-2 bg-gray-50 font-semibold">
-            Kết quả tìm kiếm
-          </div>
-          <div
-            *ngFor="let user of searchUserResults"
-            class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-b-0"
-            (click)="addUserToSelection(user)"
-          >
-            <div class="flex items-center justify-between">
+      <p-dropdown
+        [options]="searchUserResults"
+        [(ngModel)]="selectedUserForDropdown"
+        optionLabel="displayLabel"
+        [filter]="true"
+        filterBy="name,email"
+        [showClear]="true"
+        placeholder="Tìm kiếm người dùng theo tên hoặc email..."
+        (onFilter)="onUserFilter($event)"
+        (onShow)="onUserDropdownShow()"
+        (onChange)="onUserSelect($event)"
+        [style]="{'width': '100%'}"
+        [virtualScroll]="false"
+        [autoFilterFocus]="true"
+        styleClass="user-search-dropdown">
+        <ng-template pTemplate="item" let-user>
+          <div class="user-dropdown-item">
+            <div class="flex items-center justify-between w-full">
               <div>
-                <div class="font-medium">{{ user.name || "Không có tên" }}</div>
+                <div class="font-medium text-sm">{{ user.name || "Không có tên" }}</div>
                 <div class="text-gray-600 text-xs">{{ user.email }}</div>
               </div>
               <div class="text-xs text-gray-500">ID: {{ user.id }}</div>
             </div>
           </div>
-        </div>
-      </div>
+        </ng-template>
+      </p-dropdown>
     </div>
 
     <!-- Selected users table -->

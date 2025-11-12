@@ -23,6 +23,76 @@
       />
     </div>
   </div>
+  <!-- Notification icon -->
+  <div class="relative select-none notification-container mr-4">
+    <i
+      class="fa-solid fa-bell text-3xl text-cyan-700 cursor-pointer relative"
+      (mousedown)="$event.preventDefault()"
+      (click)="toggleNotifications()"
+    >
+      <span
+        *ngIf="unreadNotificationCount > 0"
+        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+      >
+        {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+      </span>
+    </i>
+    <div
+      *ngIf="showNotifications"
+      class="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded-lg z-50 select-none notification-dropdown"
+    >
+      <div class="p-4 border-b">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-bold text-cyan-700">Thông báo</span>
+          <span
+            *ngIf="notifications.length > 0"
+            class="text-xs text-gray-500"
+          >
+            {{ totalNotifications }} thông báo
+          </span>
+        </div>
+      </div>
+      <div
+        class="max-h-[500px] overflow-y-auto notification-list"
+        (scroll)="onNotificationScroll($event)"
+      >
+        <div *ngIf="notifications.length === 0 && !loadingNotifications" class="p-4 text-center text-gray-500 text-sm">
+          Không có thông báo nào
+        </div>
+        <div
+          *ngFor="let notification of notifications; let i = index"
+          class="p-4 border-b hover:bg-gray-50 cursor-pointer notification-item"
+          [class.bg-blue-50]="!notification.read"
+          [attr.data-index]="i"
+          (click)="onNotificationClick(notification)"
+        >
+          <div class="flex items-start">
+            <div class="flex-1">
+              <div class="font-medium text-sm text-gray-900 mb-1">
+                {{ notification.title || 'Thông báo' }}
+              </div>
+              <div class="text-xs text-gray-600 mb-2">
+                {{ notification.content || '' }}
+              </div>
+              <div class="text-xs text-gray-400">
+                {{ formatNotificationDate(notification.createdAt) }}
+              </div>
+            </div>
+            <div *ngIf="!notification.read" class="ml-2">
+              <span class="w-2 h-2 bg-blue-500 rounded-full inline-block"></span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="loadingNotifications" class="p-4 text-center">
+          <i class="pi pi-spin pi-spinner text-cyan-700"></i>
+          <span class="ml-2 text-sm text-gray-500">Đang tải...</span>
+        </div>
+        <div *ngIf="hasMoreNotifications === false && notifications.length > 0" class="p-4 text-center text-xs text-gray-400">
+          Đã hiển thị tất cả thông báo
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- User icon-->
   <div class="relative select-none user-info-container">
     <i
@@ -90,7 +160,7 @@
   <nav
     class="w-16 bg-gray-200 text-gray-500 flex flex-col border-stone-200 shadow-inner"
   >
-    <a
+    <!-- <a
       routerLink="/home/notification"
       routerLinkActive="bg-white/50 text-cyan-700 border-l-blue-700 shadow-inner"
       class="flex justify-center hover:bg-white/50 w-full border-l-2 transition-all"
@@ -101,7 +171,7 @@
           <p class="text-[10px]">Thông báo</p>
         </div>
       </div>
-    </a>
+    </a> -->
 
     <!-- Nhóm -->
     <a

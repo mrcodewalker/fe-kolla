@@ -158,14 +158,18 @@ export class SuperviseComponent implements OnInit {
     this.userDataService.searchBasic('').subscribe({
       next: (res: any) => {
         if (res && res.success && res.data && Array.isArray(res.data)) {
-          this.userSuggestions = res.data.slice(0, 10).map((user: any) => ({
-            userId: user.id,
-            fullName: user.fullName || user.name || user.displayName,
-            email: user.email,
-            name: user.name,
-            displayName: user.displayName,
-            displayLabel: user.fullName || user.name || user.displayName || user.email
-          }));
+          this.userSuggestions = res.data.slice(0, 10).map((user: any) => {
+            const userName = user.fullName || user.name || user.displayName || '';
+            const userEmail = user.email || '';
+            return {
+              userId: user.id,
+              fullName: userName,
+              email: userEmail,
+              name: user.name,
+              displayName: user.displayName,
+              displayLabel: userEmail ? `${userName} (${userEmail})` : userName || userEmail
+            };
+          });
         } else {
           this.userSuggestions = [];
         }
@@ -196,14 +200,18 @@ export class SuperviseComponent implements OnInit {
       this.userDataService.searchBasic(name).subscribe({
         next: (res: any) => {
           if (res && res.success && res.data && Array.isArray(res.data)) {
-            this.userSuggestions = res.data.map((user: any) => ({
-              userId: user.id,
-              fullName: user.fullName || user.name || user.displayName,
-              email: user.email,
-              name: user.name,
-              displayName: user.displayName,
-              displayLabel: user.fullName || user.name || user.displayName || user.email
-            }));
+            this.userSuggestions = res.data.map((user: any) => {
+              const userName = user.fullName || user.name || user.displayName || '';
+              const userEmail = user.email || '';
+              return {
+                userId: user.id,
+                fullName: userName,
+                email: userEmail,
+                name: user.name,
+                displayName: user.displayName,
+                displayLabel: userEmail ? `${userName} (${userEmail})` : userName || userEmail
+              };
+            });
           } else {
             this.userSuggestions = [];
           }

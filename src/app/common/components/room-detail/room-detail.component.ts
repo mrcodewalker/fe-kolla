@@ -3,13 +3,14 @@ interface MeetingWithHover extends Meeting {
 }
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MessageService } from 'primeng/api';
+import { MessageService as PrimeMessageService } from 'primeng/api';
 import { RoomDataService } from '../../services/room-data.service';
 import { UserDataService } from '../../services/user-data.service';
 import { MeetingService } from '../../services/meeting.service';
 import { MemberService } from '../../services/member.service';
 import { AuthService } from '../../services/auth.service';
 import { LoadingService } from '../../services/loading.service';
+import { MessageService, MessageItem } from '../../services/message.service';
 import { Room } from '../../models/room.model';
 import { Meeting } from '../../models/meeting.model';
 import { MeetingMember, MembershipRequest, Role } from '../../models/member.model';
@@ -52,6 +53,8 @@ export class RoomDetailComponent implements OnInit {
   searchUserResults: any[] = [];
   selectedUsersForAdd: any[] = [];
   isAllSearchedUsersSelected: boolean = false;
+  selectedUserForDropdown: any = null;
+  private userFilterTimeout: any;
 
   documents: Array<{ name: string; url: string }> = [
     { name: 'Biên bản họp.pdf', url: '#' },
@@ -74,20 +77,34 @@ export class RoomDetailComponent implements OnInit {
     }
   }
 
-  messages: Array<{ text: string; isMine: boolean }> = [
-    { text: 'Xin chào, đây là tin nhắn đầu tiên!', isMine: false },
-    { text: 'Chào bạn, mình đã nhận được thông tin.', isMine: true },
-    { text: 'Cuộc họp sẽ bắt đầu lúc 9h nhé.', isMine: false }
-  ];
+  messages: Array<MessageItem & { isMine: boolean }> = [];
   newMessage: string = '';
+  currentUserId: number | null = null;
+  
+  // Message loading properties
+  loadingMessages = false;
+  messagePage = 0;
+  messageSize = 10;
+  totalMessages = 0;
+  hasMoreMessages = true;
+  private lastTriggeredMessageIndex = -1;
 
   sendMessage() {
-    if (this.newMessage.trim()) {
-      this.messages.push({ text: this.newMessage, isMine: true });
+    if (this.newMessage.trim() && this.selectedMeeting) {
+      // TODO: Implement actual send message API call
+      // For now, just add to local array
+      const newMsg: MessageItem & { isMine: boolean } = {
+        id: Date.now(),
+        message: this.newMessage,
+        sentAt: new Date().toISOString(),
+        senderId: this.currentUserId || 0,
+        meetingId: this.selectedMeeting.id,
+        isMine: true
+      };
+      this.messages.push(newMsg);
       this.newMessage = '';
       setTimeout(() => {
-        const msgList = document.querySelector('.overflow-y-auto');
-        if (msgList) msgList.scrollTop = msgList.scrollHeight;
+        this.scrollToBottom();
       }, 50);
     }
   }
@@ -126,13 +143,20 @@ export class RoomDetailComponent implements OnInit {
     private memberService: MemberService,
     private authService: AuthService,
     private loadingService: LoadingService,
-    private messageService: MessageService
+    private messageService: PrimeMessageService,
+    private messageDataService: MessageService
   ) {}
 
   ngOnInit() {
     // Check if current user is ADMIN
     const userRole = this.authService.getCurrentUserRole();
     this.isAdmin = userRole === 'ADMIN';
+
+    // Get current user ID
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser && currentUser.id) {
+      this.currentUserId = currentUser.id;
+    }
 
     const roomId = this.route.snapshot.paramMap.get('id');
     if (roomId) {
@@ -168,6 +192,10 @@ export class RoomDetailComponent implements OnInit {
     if (this.selectedMeeting) {
       this.currentPage = 0; // Reset to first page
       this.loadMeetingMembers(this.selectedMeeting.id);
+      // Load messages if messages tab is active
+      if (this.mainTab === 'messages') {
+        this.loadMessages(true);
+      }
     }
   }
 
@@ -564,6 +592,10 @@ export class RoomDetailComponent implements OnInit {
     // Small delay to show loading animation
     setTimeout(() => {
       this.mainTab = tab;
+      // Load messages when switching to messages tab
+      if (tab === 'messages' && this.selectedMeeting) {
+        this.loadMessages(true);
+      }
       this.loadingService.hide();
     }, 100);
   }
@@ -776,6 +808,8 @@ export class RoomDetailComponent implements OnInit {
     this.searchUserResults = [];
     this.selectedUsersForAdd = [];
     this.isAllSearchedUsersSelected = false;
+    // Load initial 10 random users
+    this.loadInitialUsers();
   }
 
   closeAddMemberModal() {
@@ -784,18 +818,65 @@ export class RoomDetailComponent implements OnInit {
     this.searchUserResults = [];
     this.selectedUsersForAdd = [];
     this.isAllSearchedUsersSelected = false;
+    this.selectedUserForDropdown = null;
+    if (this.userFilterTimeout) {
+      clearTimeout(this.userFilterTimeout);
+    }
   }
 
-  onSearchUsers() {
-    if (!this.searchUserQuery || this.searchUserQuery.trim().length < 2) {
-      this.searchUserResults = [];
+  loadInitialUsers() {
+    // Load with empty query to get first 10 users
+    this.userDataService.searchBasic('').subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.searchUserResults = response.data.slice(0, 10).map((user: any) => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            imgUrl: user.imgUrl,
+            department: user.department,
+            position: user.position,
+            role: user.role,
+            userCode: user.userCode,
+            active: user.active,
+            displayLabel: user.email ? `${user.name || 'Không có tên'} (${user.email})` : user.name || 'Không có tên'
+          }));
+        } else {
+          this.searchUserResults = [];
+        }
+      },
+      error: (error: any) => {
+        console.error('Lỗi tải danh sách người dùng:', error);
+        this.searchUserResults = [];
+      }
+    });
+  }
+
+  onUserDropdownShow() {
+    // Only load if suggestions are empty
+    if (this.searchUserResults.length === 0) {
+      this.loadInitialUsers();
+    }
+  }
+
+  onUserFilter(event: any) {
+    const query = event.filter?.trim() || '';
+    this.searchUserQuery = query;
+    
+    // Clear previous timeout
+    if (this.userFilterTimeout) {
+      clearTimeout(this.userFilterTimeout);
+    }
+
+    // If empty, load initial users
+    if (!query) {
+      this.loadInitialUsers();
       return;
     }
 
-    // Delay 2 seconds before calling API
-    setTimeout(() => {
-      // Call API to search users
-      this.userDataService.searchBasic(this.searchUserQuery.trim()).subscribe({
+    // Debounce search with 1 second delay
+    this.userFilterTimeout = setTimeout(() => {
+      this.userDataService.searchBasic(query).subscribe({
         next: (response: any) => {
           if (response.success && response.data) {
             this.searchUserResults = response.data.map((user: any) => ({
@@ -807,7 +888,8 @@ export class RoomDetailComponent implements OnInit {
               position: user.position,
               role: user.role,
               userCode: user.userCode,
-              active: user.active
+              active: user.active,
+              displayLabel: user.email ? `${user.name || 'Không có tên'} (${user.email})` : user.name || 'Không có tên'
             }));
           } else {
             this.searchUserResults = [];
@@ -816,14 +898,26 @@ export class RoomDetailComponent implements OnInit {
         error: (error: any) => {
           console.error('Lỗi tìm kiếm người dùng:', error);
           this.searchUserResults = [];
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Lỗi',
-            detail: 'Có lỗi xảy ra khi tìm kiếm người dùng'
-          });
         }
       });
-    }, 2000); // Delay 2 seconds
+    }, 1000);
+  }
+
+  onUserSelect(event: any) {
+    if (event.value) {
+      // Add user to selection instead of setting dropdown value
+      this.addUserToSelection(event.value);
+      // Clear dropdown selection after adding
+      this.selectedUserForDropdown = null;
+    }
+  }
+
+  onSearchUsers() {
+    // Keep for backward compatibility if needed
+    if (!this.searchUserQuery || this.searchUserQuery.trim().length < 2) {
+      this.loadInitialUsers();
+      return;
+    }
   }
 
   addUserToSelection(user: any) {
@@ -1089,5 +1183,125 @@ export class RoomDetailComponent implements OnInit {
       // Force reload to reset the dropdown
       this.loadMeetingMembers(this.selectedMeeting.id);
     }
+  }
+
+  loadMessages(reset: boolean = false) {
+    if (!this.selectedMeeting || this.loadingMessages || (!reset && !this.hasMoreMessages)) {
+      return;
+    }
+
+    if (reset) {
+      this.messagePage = 0;
+      this.messages = [];
+      this.hasMoreMessages = true;
+      this.lastTriggeredMessageIndex = -1;
+    }
+
+    this.loadingMessages = true;
+    this.messageDataService.searchMessages({
+      meetingId: this.selectedMeeting.id,
+      page: this.messagePage,
+      size: this.messageSize,
+      sortBy: 'sentAt',
+      sortDirection: 'desc'
+    }).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const newMessages = (response.data.content || []).map((msg: MessageItem) => ({
+            ...msg,
+            isMine: msg.senderId === this.currentUserId
+          }));
+          
+          if (reset) {
+            this.messages = newMessages.reverse(); // Reverse to show oldest first
+          } else {
+            // Prepend new messages (older messages) to the beginning
+            this.messages = [...newMessages.reverse(), ...this.messages];
+          }
+          
+          this.totalMessages = response.data.totalElements || 0;
+          this.hasMoreMessages = !response.data.last;
+          this.messagePage++;
+          
+          // Scroll to bottom after loading initial messages
+          if (reset) {
+            setTimeout(() => {
+              this.scrollToBottom();
+            }, 100);
+          }
+        }
+        this.loadingMessages = false;
+      },
+      error: (error) => {
+        console.error('Error loading messages:', error);
+        this.loadingMessages = false;
+      }
+    });
+  }
+
+  onMessageScroll(event: Event) {
+    const element = event.target as HTMLElement;
+    const scrollTop = element.scrollTop;
+    
+    // Get all message items
+    const messageItems = element.querySelectorAll('.message-item');
+    if (messageItems.length === 0) return;
+    
+    // Calculate which item is at 80% of current loaded items (item 8 in 10 items)
+    const currentItemCount = messageItems.length;
+    const triggerIndex = Math.floor(currentItemCount * 0.8); // Item 8 = index 7 in 10 items
+    
+    // Only trigger once per batch
+    if (triggerIndex === this.lastTriggeredMessageIndex) {
+      return;
+    }
+    
+    // Get the trigger item (item 8 from top)
+    if (triggerIndex < messageItems.length) {
+      const triggerItem = messageItems[triggerIndex] as HTMLElement;
+      const triggerItemTop = triggerItem.offsetTop;
+      
+      // Check if trigger item (item 8) is visible in viewport (scrolled past)
+      // Since we're loading older messages, trigger when scrolling up (near top)
+      if (scrollTop <= triggerItemTop + 100 && 
+          this.hasMoreMessages && 
+          !this.loadingMessages) {
+        // Mark this index as triggered
+        this.lastTriggeredMessageIndex = triggerIndex;
+        // Load more messages (older messages)
+        this.loadMessages();
+      }
+    }
+  }
+
+  scrollToBottom() {
+    const msgList = document.querySelector('.message-list-container');
+    if (msgList) {
+      msgList.scrollTop = msgList.scrollHeight;
+    }
+  }
+
+  formatMessageDate(dateString?: string): string {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 }

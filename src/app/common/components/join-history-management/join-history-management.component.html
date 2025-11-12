@@ -50,14 +50,26 @@
                   formControlName="memberName"
                   optionLabel="displayLabel"
                   [filter]="true"
-                  filterBy="displayLabel"
+                  filterBy="fullName,email,name,displayName"
                   [showClear]="true"
-                  placeholder="Chọn thành viên..."
+                  placeholder="Tìm theo tên hoặc email..."
                   (onFilter)="onMemberFilter($event)"
                   (onShow)="onMemberDropdownShow()"
                   (onChange)="onMemberSelect($event)"
                   [style]="{'width': '100%'}"
                   styleClass="input-field">
+                  <ng-template pTemplate="selectedItem" let-member>
+                    <div class="member-selected-item" *ngIf="member">
+                      <span class="member-name">{{ member.fullName || member.name || member.displayName || '' }}</span>
+                      <span class="member-email" *ngIf="member.email">{{ member.email }}</span>
+                    </div>
+                  </ng-template>
+                  <ng-template pTemplate="item" let-member>
+                    <div class="member-dropdown-item">
+                      <span class="member-name">{{ member.fullName || member.name || member.displayName || '' }}</span>
+                      <span class="member-email" *ngIf="member.email">{{ member.email }}</span>
+                    </div>
+                  </ng-template>
                 </p-dropdown>
               </div>
             </div>

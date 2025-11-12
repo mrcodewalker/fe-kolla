@@ -1,0 +1,57 @@
+@keyframes fadein {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.animate-fadein {
+	animation: fadein 0.3s ease;
+}
+
+@keyframes modal {
+	from { transform: scale(0.95); opacity: 0; }
+	to { transform: scale(1); opacity: 1; }
+}
+
+.animate-modal {
+	animation: modal 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+// ===== NOTIFICATION DROPDOWN STYLING =====
+.notification-container {
+  .notification-dropdown {
+    max-width: 384px;
+    min-width: 320px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    
+    .notification-list {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+      
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      &::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+        
+        &:hover {
+          background: #94a3b8;
+        }
+      }
+    }
+    
+    .notification-item {
+      transition: background-color 0.2s ease;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+}
+

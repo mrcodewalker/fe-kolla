@@ -2980,6 +2980,34 @@ html body app-join-history-management .join-history-management-container .input-
   padding: 0 0.5rem !important;
   font-size: 0.8125rem !important;
   line-height: 1.75rem !important;
+  
+  .member-selected-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+    
+    .member-name {
+      flex: 1 !important;
+      font-size: 0.8125rem !important;
+      font-weight: 400 !important;
+      text-align: left !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+    
+    .member-email {
+      font-size: 0.75rem !important;
+      font-weight: 400 !important;
+      color: #6b7280 !important;
+      text-align: right !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      margin-left: auto !important;
+    }
+  }
 }
 
 html body .p-dropdown-panel {
@@ -2999,7 +3027,9 @@ html body .p-dropdown-panel .p-dropdown-items {
 html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
   background-color: #ffffff !important;
   background: #ffffff !important;
-  padding: 0.5rem 0.75rem !important;
+  padding: 0.5rem 0 0.5rem 0.75rem !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
@@ -3012,6 +3042,49 @@ html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
   background-color: #06b6d4 !important;
   background: #06b6d4 !important;
   color: #ffffff !important;
+}
+
+// ===== MEMBER DROPDOWN ITEM CUSTOM STYLING =====
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item .member-dropdown-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 0.5rem !important;
+  margin: 0 !important;
+  padding: 0 0.75rem 0 0 !important;
+  min-width: 0 !important;
+  
+  .member-name {
+    flex: 1 1 auto !important;
+    font-size: 0.8125rem !important;
+    font-weight: 400 !important;
+    color: inherit !important;
+    text-align: left !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  .member-email {
+    font-size: 0.75rem !important;
+    font-weight: 400 !important;
+    color: #6b7280 !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover .member-dropdown-item .member-email,
+html body .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight .member-dropdown-item .member-email {
+  color: inherit !important;
+  opacity: 0.9 !important;
 }
 
 // ===== DROPDOWN FILTER ICON POSITIONING - MAXIMUM PRIORITY =====
