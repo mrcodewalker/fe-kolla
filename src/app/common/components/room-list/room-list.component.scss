@@ -275,3 +275,59 @@ body div .p-dropdown-panel .p-dropdown-header .p-dropdown-filter-icon {
   margin-left: 0 !important;
   z-index: 999 !important;
 }
+
+// Hide PrimeNG's screen-reader helper inside this component
+::host ::ng-deep .p-hidden-accessible {
+  display: none !important;
+}
+
+.room-toolbar {
+  &:focus,
+  &:focus-visible,
+  &:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  button:focus,
+  button:focus-visible,
+  button:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  ::ng-deep .p-dropdown:focus,
+  ::ng-deep .p-dropdown:focus-visible,
+  ::ng-deep .p-dropdown:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  ::ng-deep .p-dropdown {
+    min-height: 2.75rem !important;
+    height: 2.75rem !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  ::ng-deep .p-dropdown .p-dropdown-label {
+    display: flex !important;
+    align-items: center !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  ::ng-deep .p-dropdown .p-dropdown-trigger {
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  button {
+    height: 2.75rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+  }
+}

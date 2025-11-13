@@ -75,3 +75,8 @@
     .p-toast-detail { color: #78350f; }
   }
 }
+
+/* Global override: hide PrimeNG's accessible helper wrapper */
+.p-hidden-accessible {
+  display: none !important;
+}

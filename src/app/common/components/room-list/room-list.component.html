@@ -1,26 +1,14 @@
 <div class="bg-white p-4">
-  <div class="flex items-center justify-between border-b pb-2 mb-4">
-    <h2 class="text-lg font-bold text-gray-700">Nhóm</h2>
-    <div class="flex items-center gap-2">
-      <input
-        type="text"
-        class="border rounded px-2 py-1 text-sm"
-        placeholder="Tìm theo tên..."
-        [(ngModel)]="keyword"
-        (ngModelChange)="onSearchKeywordChange($event)"
-        (keyup.enter)="onSearchEnter()"
-      />
+    <div class="flex items-center justify-between border-b pb-2 mb-4">
+      <h2 class="text-lg font-bold text-gray-700">Nhóm</h2>
+      <div class="flex items-center gap-2 room-toolbar">
       <p-dropdown
-        [options]="departmentSuggestions"
+        [options]="departmentOptions"
         [(ngModel)]="selectedDepartmentId"
         optionLabel="departmentName"
         optionValue="id"
-        [filter]="true"
-        filterBy="departmentName"
         [showClear]="true"
         placeholder="Tất cả phòng ban"
-        (onFilter)="onDepartmentFilter($event)"
-        (onShow)="onDepartmentDropdownShow()"
         (onChange)="onDepartmentChange($event)"
         [style]="{'width': '100%', 'min-width': '200px'}"
         styleClass="text-sm">

@@ -1,1 +1,24 @@
-<p>notification works!</p>
+<div class="notification-wrapper">
+  <h1 class="title">Thông báo</h1>
+
+  <div class="unread-summary">
+    <span class="label">Thông báo chưa đọc:</span>
+    <span class="count">
+      <ng-container *ngIf="!loading; else loadingTpl">
+        {{ unreadCount ?? 0 }}
+      </ng-container>
+    </span>
+  </div>
+
+  <ng-container *ngIf="error">
+    <div class="error-message">{{ error }}</div>
+  </ng-container>
+
+  <button class="refresh-button" (click)="loadUnreadCount()" [disabled]="loading">
+    Làm mới
+  </button>
+</div>
+
+<ng-template #loadingTpl>
+  <i class="pi pi-spin pi-spinner text-cyan-700"></i>
+</ng-template>

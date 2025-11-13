@@ -57,7 +57,7 @@
                   (onShow)="onMemberDropdownShow()"
                   (onChange)="onMemberSelect($event)"
                   [style]="{'width': '100%'}"
-                  styleClass="input-field">
+                  styleClass="input-field member-dropdown">
                   <ng-template pTemplate="selectedItem" let-member>
                     <div class="member-selected-item" *ngIf="member">
                       <span class="member-name">{{ member.fullName || member.name || member.displayName || '' }}</span>

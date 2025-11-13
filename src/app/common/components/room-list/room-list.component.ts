@@ -19,7 +19,6 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   initialRenameRoomValues: { name: string; departmentId: number | null } | null = null;
   roomList: Room[] = [];
   // Filters & pagination
-  keyword: string = '';
   selectedDepartmentId: number | null = null;
   page = 0;
   size = 10;
@@ -33,9 +32,7 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   newRoomName = '';
   roomMenuIndex: number | null = null;
   department: Department[] = []; // For create/rename modals
-  departmentSuggestions: DepartmentItem[] = []; // For p-dropdown filter
-  private departmentFilterTimeout: any;
-  private keywordSearchTimeout: any;
+  departmentOptions: DepartmentItem[] = []; // For department filter dropdown
   // Confirm dialog state
   showConfirmDialog = false;
   confirmDialogTitle = 'Xác nhận';
@@ -52,85 +49,28 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.loadRooms();
-    this.loadDepartmentSuggestions();
+    this.loadDepartmentOptions();
   }
 
-  // Load departments for p-dropdown filter
-  loadDepartmentSuggestions(): void {
-    this.departmentService.searchDepartments({ size: 100 }).subscribe({
+  // Load departments for dropdown filter
+  loadDepartmentOptions(): void {
+    this.departmentService.getAllDepartments().subscribe({
       next: (res) => {
         if (res && res.success && res.data && Array.isArray(res.data)) {
-          this.departmentSuggestions = res.data;
+          this.departmentOptions = res.data;
         } else {
-          this.departmentSuggestions = [];
+          this.departmentOptions = [];
         }
       },
       error: () => {
-        this.departmentSuggestions = [];
+        this.departmentOptions = [];
       }
     });
-  }
-
-  // Called when dropdown is shown - load initial departments
-  onDepartmentDropdownShow(): void {
-    // Only load if suggestions are empty
-    if (this.departmentSuggestions.length === 0) {
-      this.loadInitialDepartments();
-    }
-  }
-
-  // Load initial departments
-  private loadInitialDepartments(): void {
-    this.departmentService.searchDepartments({ size: 10 }).subscribe({
-      next: (res) => {
-        if (res && res.success && res.data && Array.isArray(res.data)) {
-          this.departmentSuggestions = res.data.slice(0, 10);
-        } else {
-          this.departmentSuggestions = [];
-        }
-      },
-      error: () => {
-        this.departmentSuggestions = [];
-      }
-    });
-  }
-
-  // Called when user types in the filter box
-  onDepartmentFilter(event: any): void {
-    const name = event.filter?.trim();
-    
-    // Clear previous timeout
-    if (this.departmentFilterTimeout) {
-      clearTimeout(this.departmentFilterTimeout);
-    }
-
-    // If empty, load initial departments
-    if (!name) {
-      this.loadInitialDepartments();
-      return;
-    }
-
-    // Debounce search with 1 second delay
-    this.departmentFilterTimeout = setTimeout(() => {
-      this.departmentService.searchDepartments({ name: name, size: 10 }).subscribe({
-        next: (res) => {
-          if (res && res.success && res.data && Array.isArray(res.data)) {
-            this.departmentSuggestions = res.data;
-          } else {
-            this.departmentSuggestions = [];
-          }
-        },
-        error: () => {
-          this.departmentSuggestions = [];
-        }
-      });
-    }, 1000);
   }
 
   loadRooms() {
     this.roomService
       .searchRooms({
-        keyword: this.keyword || undefined,
         departmentId: this.selectedDepartmentId ?? undefined,
         page: this.page,
         size: this.size,
@@ -149,33 +89,6 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
           this.totalPages = 0;
         }
       });
-  }
-
-  onSearchKeywordChange(value: string) {
-    this.keyword = value;
-    this.page = 0;
-    
-    // Clear previous timeout
-    if (this.keywordSearchTimeout) {
-      clearTimeout(this.keywordSearchTimeout);
-    }
-    
-    // Debounce search with 1 second delay
-    this.keywordSearchTimeout = setTimeout(() => {
-      this.loadRooms();
-    }, 1000);
-  }
-
-  onSearchEnter(): void {
-    // Clear timeout if user presses Enter
-    if (this.keywordSearchTimeout) {
-      clearTimeout(this.keywordSearchTimeout);
-      this.keywordSearchTimeout = null;
-    }
-    
-    // Search immediately on Enter
-    this.page = 0;
-    this.loadRooms();
   }
 
   onDepartmentChange(event: any): void {

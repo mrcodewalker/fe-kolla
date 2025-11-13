@@ -7,6 +7,7 @@ import { UserDataService } from '../../services/user-data.service';
 import { ApproveService, MemberItem, MemberSearchParams } from '../../services/approve.service';
 import { Member, ApprovalRequest, RejectRequest } from '../../models/member.model';
 import { Meeting } from '../../models/meeting.model';
+import { MessageService } from 'primeng/api';
 
 interface ColumnConfig {
   field: keyof MemberItem | 'actions';
@@ -155,15 +156,15 @@ export class ApproveComponent implements OnInit {
     private memberService: MemberService,
     private meetingService: MeetingService,
     private approveService: ApproveService,
-    private userDataService: UserDataService
+    private userDataService: UserDataService,
+    private messageService: MessageService
   ) {
     this.form = this.fb.group({
       meetingName: [null],
       memberName: [null],
       userId: [''],
       meetingId: [''],
-      roleId: [''],
-      isActive: [null]
+      roleId: ['']
     });
   }
 
@@ -375,8 +376,7 @@ export class ApproveComponent implements OnInit {
       memberName: null,
       userId: '',
       meetingId: '',
-      roleId: '',
-      isActive: null
+      roleId: ''
     });
     this.selectedMeetingIdFromSearch = null;
     this.selectedUserIdFromSearch = null;
@@ -411,7 +411,7 @@ export class ApproveComponent implements OnInit {
 
   private loadData(): void {
     this.loading = true;
-    const { roleId, isActive } = this.form.value;
+    const { roleId } = this.form.value;
     
     const searchParams: MemberSearchParams = {
       page: this.page,
@@ -434,9 +434,6 @@ export class ApproveComponent implements OnInit {
     }
     if (roleId !== undefined && roleId !== null && roleId !== '') {
       searchParams.roleId = parseInt(roleId);
-    }
-    if (isActive !== undefined && isActive !== null) {
-      searchParams.isActive = isActive;
     }
 
     console.log('Search Params:', searchParams);
@@ -539,9 +536,21 @@ export class ApproveComponent implements OnInit {
         if (this.selectedRoom?.id) {
           this.loadRequestsForRoom(this.selectedRoom.id);
         }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã chấp nhận thành viên',
+          life: 3000
+        });
       },
       error: (err) => {
         console.error('Lỗi chấp nhận yêu cầu:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Không thể chấp nhận yêu cầu. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }
@@ -592,11 +601,23 @@ export class ApproveComponent implements OnInit {
         this.joinedRequest = this.joinedRequest.filter((r) => r.id !== req.id);
         this.pendingRejectMember = null;
         this.showConfirmDialog = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã xóa / từ chối thành viên',
+          life: 3000
+        });
       },
       error: (err) => {
         console.error('Lỗi từ chối yêu cầu:', err);
         this.pendingRejectMember = null;
         this.showConfirmDialog = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Không thể xóa thành viên. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }

@@ -4,6 +4,8 @@ import { UserManagementService, UserManagementItem, UpdateUserRequest } from '..
 import { DepartmentService, DepartmentItem } from '../../services/department.service';
 import { RoleService, RoleItem } from '../../services/role.service';
 import { AuthenticationService, RegisterRequest } from '../../services/authentication.service';
+import { MessageService } from 'primeng/api';
+import { formatDate } from '@angular/common';
 
 interface ColumnConfig {
   field: keyof UserManagementItem | 'actions';
@@ -156,7 +158,8 @@ export class ManagementComponent implements OnInit {
     private userManagementService: UserManagementService,
     private departmentService: DepartmentService,
     private roleService: RoleService,
-    private authService: AuthenticationService
+    private authService: AuthenticationService,
+    private messageService: MessageService
   ) {
     this.form = this.fb.group({
       keyword: [''],
@@ -350,6 +353,16 @@ export class ManagementComponent implements OnInit {
     };
     
     this.editForm.patchValue(initialValues);
+    if (initialValues.dob) {
+      try {
+        const parsedDate = new Date(initialValues.dob);
+        if (!isNaN(parsedDate.getTime())) {
+          this.editForm.patchValue({ dob: parsedDate });
+        }
+      } catch (e) {
+        console.warn('Không thể parse ngày sinh:', initialValues.dob);
+      }
+    }
     
     // Save initial values for comparison
     this.initialEditFormValues = JSON.parse(JSON.stringify(initialValues));
@@ -359,8 +372,12 @@ export class ManagementComponent implements OnInit {
 
   onSaveEdit(): void {
     if (this.editForm.valid && this.editingUser) {
+      const formValue = this.editForm.value;
       const updateData: UpdateUserRequest = {
-        ...this.editForm.value
+        ...formValue,
+        dob: formValue.dob
+          ? formatDate(formValue.dob, 'yyyy-MM-dd', 'en-US')
+          : null
       };
 
       this.userManagementService.updateUser(this.editingUser.id, updateData).subscribe({
@@ -370,9 +387,21 @@ export class ManagementComponent implements OnInit {
           this.editForm.reset();
           this.initialEditFormValues = null;
           this.loadData();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Thành công',
+            detail: 'Cập nhật tài khoản thành công',
+            life: 3000
+          });
         },
         error: (error) => {
           console.error('Error updating user:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Thất bại',
+            detail: 'Cập nhật tài khoản thất bại',
+            life: 4000
+          });
         }
       });
     }
@@ -435,11 +464,23 @@ export class ManagementComponent implements OnInit {
         this.loadData();
         this.pendingDeleteUser = null;
         this.showConfirmDialog = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: `Đã xóa tài khoản "${user.name}".`,
+          life: 3000
+        });
       },
       error: (error) => {
         console.error('Error deleting user:', error);
         this.pendingDeleteUser = null;
         this.showConfirmDialog = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Xóa tài khoản thất bại. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }

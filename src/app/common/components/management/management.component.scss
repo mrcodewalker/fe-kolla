@@ -732,10 +732,11 @@
         font-size: 0.875rem;
         border: 2px solid #e5e7eb !important;
         border-radius: 8px !important;
-        padding: 0.5rem !important;
+        padding: 0.75rem !important;
         transition: all 0.2s ease !important;
         background: #ffffff !important;
-        height: 2.5rem !important;
+        height: 3rem !important;
+        min-height: 3rem !important;
         
         &:hover {
           border-color: #06b6d4 !important;
@@ -787,19 +788,29 @@
       
       // Special styling for PrimeNG calendar
       .p-calendar {
-        height: 2.5rem !important;
+        height: 3rem !important;
+        min-height: 3rem !important;
+        display: flex !important;
+        align-items: center !important;
         
         .p-inputtext {
-          height: 2.5rem !important;
+          height: 100% !important;
           border: none !important;
-          padding: 0.5rem !important;
+          padding: 0 0.75rem !important;
           box-shadow: none !important;
           background: transparent !important;
           font-size: 0.875rem !important;
+          display: flex !important;
+          align-items: center !important;
         }
         
         .p-datepicker-trigger {
           color: #6b7280 !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 0.5rem !important;
         }
       }
     }

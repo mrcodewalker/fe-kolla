@@ -1,4 +1,5 @@
 <div class="approve-container p-4">
+  <p-toast position="top-right"></p-toast>
   <!-- Header Section -->
   <div class="header-section">
     <div class="flex justify-content-between align-items-center mb-4">
@@ -17,7 +18,7 @@
         <form [formGroup]="form" (ngSubmit)="onSearch()">
           <div class="search-row">
             <!-- Meeting Name Field -->
-            <div class="field-group">
+            <div class="field-group meeting-field">
               <label for="meetingName" class="field-label">
                 <span>Tên cuộc họp</span>
               </label>
@@ -40,7 +41,7 @@
             </div>
 
             <!-- Member Name Field -->
-            <div class="field-group">
+            <div class="field-group member-field">
               <label for="memberName" class="field-label">
                 <span>Tên thành viên</span>
               </label>
@@ -57,11 +58,10 @@
                   (onShow)="onMemberDropdownShow()"
                   (onChange)="onMemberSelect($event)"
                   [style]="{'width': '100%'}"
-                  styleClass="input-field">
+                  styleClass="input-field member-dropdown">
                   <ng-template pTemplate="selectedItem" let-member>
                     <div class="member-selected-item" *ngIf="member">
                       <span class="member-name">{{ member.fullName || member.name || member.displayName || '' }}</span>
-                      <span class="member-email" *ngIf="member.email">{{ member.email }}</span>
                     </div>
                   </ng-template>
                   <ng-template pTemplate="item" let-member>
@@ -70,28 +70,6 @@
                       <span class="member-email" *ngIf="member.email">{{ member.email }}</span>
                     </div>
                   </ng-template>
-                </p-dropdown>
-              </div>
-            </div>
-
-            <!-- Status Field -->
-            <div class="field-group">
-              <label for="isActive" class="field-label">
-                <span>Trạng thái</span>
-              </label>
-              <div class="input-container">
-                <p-dropdown 
-                  id="isActive"
-                  formControlName="isActive"
-                  [options]="[
-                    {label: 'Tất cả', value: null},
-                    {label: 'Hoạt động', value: true},
-                    {label: 'Chờ duyệt', value: false}
-                  ]"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Chọn trạng thái"
-                  styleClass="input-field dropdown-field">
                 </p-dropdown>
               </div>
             </div>

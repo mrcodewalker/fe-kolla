@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DepartmentService, DepartmentItem, DepartmentSearchParams, CreateDepartmentRequest, UpdateDepartmentRequest } from '../../services/department.service';
+import { MessageService } from 'primeng/api';
 
 interface ColumnConfig {
   field: keyof DepartmentItem | 'actions';
@@ -37,8 +38,8 @@ export class DepartmentsComponent implements OnInit {
   componentInitialized = false;
 
   // Autocomplete for department name
+  allDepartments: DepartmentItem[] = [];
   departmentSuggestions: DepartmentItem[] = [];
-  private departmentFilterTimeout: any;
   selectedDepartmentId: number | null = null;
 
   // Add Department Dialog
@@ -93,7 +94,8 @@ export class DepartmentsComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private departmentService: DepartmentService
+    private departmentService: DepartmentService,
+    private messageService: MessageService
   ) {
     this.form = this.fb.group({
       name: [null]
@@ -112,6 +114,7 @@ export class DepartmentsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadAllDepartmentsForDropdown();
     // Mark component as initialized after a small delay
     setTimeout(() => {
       this.componentInitialized = true;
@@ -120,58 +123,46 @@ export class DepartmentsComponent implements OnInit {
 
   // Called when dropdown is shown - load initial 10 departments
   onDepartmentDropdownShow(): void {
-    // Only load if suggestions are empty
-    if (this.departmentSuggestions.length === 0) {
-      this.loadInitialDepartments();
+    if (this.allDepartments.length === 0) {
+      this.loadAllDepartmentsForDropdown();
     }
   }
 
-  // Load initial 10 departments
-  private loadInitialDepartments(): void {
-    this.departmentService.searchDepartments({ size: 10 }).subscribe({
+  // Load all departments once for local dropdown filtering
+  private loadAllDepartmentsForDropdown(): void {
+    this.departmentService.getAllDepartments().subscribe({
       next: (res) => {
-        if (res && res.success && res.data && Array.isArray(res.data)) {
-          this.departmentSuggestions = res.data.slice(0, 10);
+        if (res && res.success && Array.isArray(res.data)) {
+          this.allDepartments = res.data;
+          this.departmentSuggestions = [...this.allDepartments];
         } else {
+          this.allDepartments = [];
           this.departmentSuggestions = [];
         }
       },
       error: () => {
+        this.allDepartments = [];
         this.departmentSuggestions = [];
       }
     });
   }
 
-  // Called when user types in the filter box
+  // Called when user types in the filter box (local filtering)
   onDepartmentFilter(event: any): void {
-    const name = event.filter?.trim();
-    
-    // Clear previous timeout
-    if (this.departmentFilterTimeout) {
-      clearTimeout(this.departmentFilterTimeout);
+    const query = (event?.filter || '').toString().trim().toLowerCase();
+
+    if (this.allDepartments.length === 0) {
+      this.loadAllDepartmentsForDropdown();
     }
 
-    // If empty, load initial departments
-    if (!name) {
-      this.loadInitialDepartments();
+    if (!query) {
+      this.departmentSuggestions = [...this.allDepartments];
       return;
     }
 
-    // Debounce search with 1 second delay
-    this.departmentFilterTimeout = setTimeout(() => {
-      this.departmentService.searchDepartments({ name: name, size: 10 }).subscribe({
-        next: (res) => {
-          if (res && res.success && res.data && Array.isArray(res.data)) {
-            this.departmentSuggestions = res.data;
-          } else {
-            this.departmentSuggestions = [];
-          }
-        },
-        error: () => {
-          this.departmentSuggestions = [];
-        }
-      });
-    }, 1000);
+    this.departmentSuggestions = this.allDepartments.filter(dept =>
+      dept.departmentName?.toLowerCase().includes(query)
+    );
   }
 
   // Called when a department is selected
@@ -237,7 +228,7 @@ export class DepartmentsComponent implements OnInit {
       name: null
     });
     this.selectedDepartmentId = null;
-    this.departmentSuggestions = [];
+    this.departmentSuggestions = [...this.allDepartments];
     this.page = 0;
     this.loadData();
   }
@@ -271,6 +262,8 @@ export class DepartmentsComponent implements OnInit {
           console.log('All Departments Response:', res);
           if (res.success && res.data) {
             this.rows = res.data;
+            this.allDepartments = res.data;
+            this.departmentSuggestions = [...this.allDepartments];
             this.applySortingAndPagination();
           } else {
             this.rows = [];
@@ -285,6 +278,12 @@ export class DepartmentsComponent implements OnInit {
           this.filteredRows = [];
           this.totalRecords = 0;
           this.loading = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: 'Không thể tải danh sách phòng ban',
+            life: 4000
+          });
         }
       });
     } else {
@@ -316,6 +315,12 @@ export class DepartmentsComponent implements OnInit {
           this.filteredRows = [];
           this.totalRecords = 0;
           this.loading = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: 'Không thể tìm kiếm phòng ban',
+            life: 4000
+          });
         }
       });
     }
@@ -429,11 +434,22 @@ export class DepartmentsComponent implements OnInit {
         this.closeAddDepartmentDialog();
         // Reload data to show new department
         this.loadData();
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã thêm phòng ban mới',
+          life: 3000
+        });
       },
       error: (error) => {
         console.error('Error creating department:', error);
         this.addingDepartment = false;
-        // You might want to show an error message to the user here
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Không thể thêm phòng ban. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }
@@ -499,11 +515,22 @@ export class DepartmentsComponent implements OnInit {
         this.closeEditDepartmentDialog();
         // Reload data to show updated department
         this.loadData();
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã cập nhật phòng ban',
+          life: 3000
+        });
       },
       error: (error) => {
         console.error('Error updating department:', error);
         this.editingDepartment = false;
-        // You might want to show an error message to the user here
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Không thể cập nhật phòng ban. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }
@@ -534,13 +561,24 @@ export class DepartmentsComponent implements OnInit {
         this.loadData();
         this.pendingDeleteDepartment = null;
         this.showConfirmDialog = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: `Đã xóa phòng ban "${department.departmentName}"`,
+          life: 3000
+        });
       },
       error: (error) => {
         console.error('Error deleting department:', error);
         this.loading = false;
         this.pendingDeleteDepartment = null;
         this.showConfirmDialog = false;
-        // You might want to show an error message to the user here
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Thất bại',
+          detail: 'Không thể xóa phòng ban. Vui lòng thử lại.',
+          life: 4000
+        });
       }
     });
   }

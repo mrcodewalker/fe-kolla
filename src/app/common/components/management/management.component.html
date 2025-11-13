@@ -1,4 +1,5 @@
 <div class="user-management-container p-4">
+  <p-toast position="top-right"></p-toast>
   <!-- Header Section -->
   <div class="header-section">
     <div class="flex justify-content-between align-items-center mb-4">
@@ -374,8 +375,9 @@
             <p-calendar
               id="editDob"
               formControlName="dob"
-              dateFormat="yy-mm-dd"
+              dateFormat="dd/mm/yy"
               [showIcon]="true"
+              styleClass="edit-calendar"
             ></p-calendar>
           </div>
         </div>

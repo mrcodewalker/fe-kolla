@@ -68,6 +68,12 @@ export interface NotificationSearchParams {
   size?: number;      // default 10
 }
 
+export interface UnreadNotificationCountResponse {
+  success: boolean;
+  data: number;
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -98,6 +104,10 @@ export class NotificationService {
 
   markAsRead(notificationId: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/${notificationId}/read`, {});
+  }
+
+  getUnreadNotificationCount(): Observable<UnreadNotificationCountResponse> {
+    return this.http.get<UnreadNotificationCountResponse>(`${this.apiUrl}/unread/count`);
   }
 
   joinMeeting(meetingLink: string): Observable<any> {

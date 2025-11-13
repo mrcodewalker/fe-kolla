@@ -51,6 +51,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       // Dữ liệu sẽ được cập nhật tự động thông qua subscription trên
     });
     this.subscriptions.push(updateSubscription);
+
+    this.loadUnreadNotificationCount();
   }
 
   ngOnDestroy() {
@@ -92,6 +94,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.showNotifications) {
       // Reload notifications every time the dropdown is opened
       this.loadNotifications(true);
+      this.loadUnreadNotificationCount();
     }
   }
 
@@ -201,6 +204,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           notification.isRead = true;
           notification.read = true; // Keep for backward compatibility
           this.updateUnreadCount();
+          this.loadUnreadNotificationCount();
         },
         error: (error) => {
           console.error('Error marking notification as read:', error);
@@ -215,6 +219,21 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!notification.meetingResponse?.meetingLink) {
       console.error('Meeting link not available');
       return;
+    }
+
+    const isRead = notification.isRead !== undefined ? notification.isRead : notification.read;
+    if (!isRead) {
+      this.notificationService.markAsRead(notification.id).subscribe({
+        next: () => {
+          notification.isRead = true;
+          notification.read = true;
+          this.updateUnreadCount();
+          this.loadUnreadNotificationCount();
+        },
+        error: (error) => {
+          console.error('Error marking notification as read:', error);
+        }
+      });
     }
 
     const token = this.authService.getAuthToken();
@@ -257,6 +276,19 @@ export class HomeComponent implements OnInit, OnDestroy {
       const isRead = n.isRead !== undefined ? n.isRead : n.read;
       return !isRead;
     }).length;
+  }
+
+  loadUnreadNotificationCount() {
+    this.notificationService.getUnreadNotificationCount().subscribe({
+      next: (response) => {
+        if (response?.success) {
+          this.unreadNotificationCount = response.data ?? 0;
+        }
+      },
+      error: (error) => {
+        console.error('Error fetching unread notification count:', error);
+      }
+    });
   }
 
   formatNotificationDate(dateString?: string): string {
