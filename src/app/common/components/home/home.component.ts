@@ -89,8 +89,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   toggleNotifications() {
     this.showNotifications = !this.showNotifications;
-    if (this.showNotifications && this.notifications.length === 0) {
-      this.loadNotifications();
+    if (this.showNotifications) {
+      // Reload notifications every time the dropdown is opened
+      this.loadNotifications(true);
     }
   }
 
@@ -114,6 +115,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response.success && response.data) {
           const newNotifications = response.data.content || [];
+          // Normalize read status
+          newNotifications.forEach(n => {
+            if (n.isRead !== undefined) {
+              n.read = n.isRead; // Keep backward compatibility
+            } else if (n.read !== undefined) {
+              n.isRead = n.read; // Sync the other way
+            }
+          });
+          
           if (reset) {
             this.notifications = newNotifications;
           } else {
@@ -177,17 +187,76 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  onNotificationClick(notification: NotificationItem) {
+  onNotificationClick(notification: NotificationItem, event?: Event) {
+    // Prevent event bubbling if clicking on button
+    if (event) {
+      event.stopPropagation();
+    }
+    
     // Mark as read if not already read
-    if (!notification.read) {
-      notification.read = true;
-      this.updateUnreadCount();
-      // TODO: Call API to mark notification as read if needed
+    const isRead = notification.isRead !== undefined ? notification.isRead : notification.read;
+    if (!isRead) {
+      this.notificationService.markAsRead(notification.id).subscribe({
+        next: () => {
+          notification.isRead = true;
+          notification.read = true; // Keep for backward compatibility
+          this.updateUnreadCount();
+        },
+        error: (error) => {
+          console.error('Error marking notification as read:', error);
+        }
+      });
     }
   }
 
+  onJoinMeeting(notification: NotificationItem, event: Event) {
+    event.stopPropagation();
+    
+    if (!notification.meetingResponse?.meetingLink) {
+      console.error('Meeting link not available');
+      return;
+    }
+
+    const token = this.authService.getAuthToken();
+    if (!token) {
+      console.error('Token not available');
+      return;
+    }
+
+    // Navigate to external URL with query params
+    const baseUrl = 'https://36.50.54.109:8081';
+    const params = new URLSearchParams({
+      meetLink: notification.meetingResponse.meetingLink,
+      token: token
+    });
+    
+    const url = `${baseUrl}?${params.toString()}`;
+    window.open(url, '_blank');
+  }
+
+  isInvitationNotification(notification: NotificationItem): boolean {
+    if (!notification.title) return false;
+    return notification.title.toLowerCase().includes('mời');
+  }
+
+  formatMeetingDateTime(startTime?: string): string {
+    if (!startTime) return '';
+    
+    const date = new Date(startTime);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
+  }
+
   updateUnreadCount() {
-    this.unreadNotificationCount = this.notifications.filter(n => !n.read).length;
+    this.unreadNotificationCount = this.notifications.filter(n => {
+      const isRead = n.isRead !== undefined ? n.isRead : n.read;
+      return !isRead;
+    }).length;
   }
 
   formatNotificationDate(dateString?: string): string {
