@@ -49,6 +49,8 @@ import { LoadingComponent } from './common/components/loading/loading.component'
 import { ConfirmDialogComponent } from './common/components/confirm-dialog/confirm-dialog.component';
 import { JoinHistoryComponent } from './common/components/join-history/join-history.component';
 import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
+import { ChangePasswordComponent } from './common/components/change-password/change-password.component';
+import { SafeUrlPipe } from './common/pipes/safe-url.pipe';
 
 @NgModule({
   declarations: [
@@ -71,7 +73,9 @@ import { JoinHistoryManagementComponent } from './common/components/join-history
     LoadingComponent,
     ConfirmDialogComponent,
     JoinHistoryComponent,
-    JoinHistoryManagementComponent
+    JoinHistoryManagementComponent,
+    ChangePasswordComponent,
+    SafeUrlPipe
   ],
   imports: [
     BrowserModule,

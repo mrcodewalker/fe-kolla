@@ -140,16 +140,29 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renameRoomNewName = room.roomName;
     this.renameRoomId = room.id;
     
-    // Set initial department ID (default to room's current department)
-    this.renameRoomDepartmentId = room.departmentId || null;
+    // Set initial department ID - check both departmentResponse.id and departmentId
+    // API may return departmentResponse object with id property
+    let departmentId: number | null = null;
+    if ((room as any).departmentResponse?.id) {
+      departmentId = (room as any).departmentResponse.id;
+    } else if (room.departmentId) {
+      departmentId = room.departmentId;
+    }
     
     // Save initial values for comparison
     this.initialRenameRoomValues = {
       name: room.roomName,
-      departmentId: room.departmentId || null
+      departmentId: departmentId
     };
     
-    this.loadDepartment();
+    // Load departments first, then set the selected value after options are loaded
+    this.departmentService.getAllDepartments().subscribe((res: any) => {
+      this.department = res.data;
+      // Set the department ID after departments are loaded to ensure dropdown has options
+      setTimeout(() => {
+        this.renameRoomDepartmentId = departmentId;
+      }, 0);
+    });
   }
 
   closeRenameModal() {
@@ -285,7 +298,7 @@ export class RoomListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadDepartment(){
-    this.departmentService.getAllDepartments().subscribe((res: any) => {
+    return this.departmentService.getAllDepartments().subscribe((res: any) => {
       this.department = res.data;
     });
   }

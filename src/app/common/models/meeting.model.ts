@@ -15,6 +15,7 @@ export interface Meeting {
   membershipStatus: 'NONE' | 'APPROVED' | 'PENDING';
   isComingSoon?: boolean;
   isExpired?: boolean;
+  isMeeting?: boolean;
 }
 
 export interface PagedResponse<T> {

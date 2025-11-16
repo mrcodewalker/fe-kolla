@@ -18,6 +18,7 @@ import { ManagementComponent } from './common/components/management/management.c
 import { SuperviseComponent } from './common/components/supervise/supervise.component';
 import { JoinHistoryComponent } from './common/components/join-history/join-history.component';
 import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
+import { ChangePasswordComponent } from './common/components/change-password/change-password.component';
 
 
 const routes: Routes = [
@@ -74,6 +75,7 @@ const routes: Routes = [
     { path: 'roomdetail/:id', component: RoomDetailComponent, canActivate: [AuthGuard] },
     { path: 'calendar', component: CalendarComponent, canActivate: [AuthGuard] },
     { path: 'userinfo', component: UserInfoComponent, canActivate: [AuthGuard] },
+    { path: 'change-password', component: ChangePasswordComponent, canActivate: [AuthGuard] },
     { path: 'approve', component: ApproveComponent, canActivate: [AuthGuard] },
     { path: 'notification', component: NotificationComponent, canActivate: [AuthGuard] },
     { path: 'meeting-history', component: MeetingHistoryComponent, canActivate: [AuthGuard] },

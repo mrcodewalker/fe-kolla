@@ -544,10 +544,20 @@ export class ManagementComponent implements OnInit {
           if (response && response.success) {
             console.log('Thêm tài khoản thành công:', response.message);
             this.loadData(); // Refresh data table only on success
-            // You can add success toast notification here
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Thành công',
+              detail: 'Tạo tài khoản thành công',
+              life: 3000
+            });
           } else {
             console.error('Thêm tài khoản thất bại:', response?.message || 'Unknown error');
-            // You can add error toast notification here
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Thất bại',
+              detail: response?.message || 'Tạo tài khoản thất bại',
+              life: 4000
+            });
           }
         },
         error: (error) => {
@@ -558,7 +568,12 @@ export class ManagementComponent implements OnInit {
           this.addForm.reset();
           
           console.error('Lỗi API:', error);
-          // You can add error toast notification here
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: error?.error?.message || 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại.',
+            life: 4000
+          });
         }
       });
     }

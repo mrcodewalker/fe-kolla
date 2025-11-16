@@ -123,4 +123,11 @@ export class AuthService {
   getCurrentUser(): User | null {
     return this.currentUserSubject.value || null;
   }
+
+  changePassword(oldPassword: string, newPassword: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/change-password`, {
+      oldPassword,
+      newPassword
+    });
+  }
 }

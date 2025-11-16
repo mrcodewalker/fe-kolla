@@ -1,8 +1,9 @@
 interface MeetingWithHover extends Meeting {
   hover: boolean;
 }
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MessageService as PrimeMessageService } from 'primeng/api';
 import { RoomDataService } from '../../services/room-data.service';
 import { UserDataService } from '../../services/user-data.service';
@@ -15,7 +16,7 @@ import { Room } from '../../models/room.model';
 import { Meeting } from '../../models/meeting.model';
 import { MeetingMember, MembershipRequest, Role } from '../../models/member.model';
 import { forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { User } from '../../models/user.model';
 
 @Component({
@@ -41,6 +42,8 @@ export class RoomDetailComponent implements OnInit {
 
   // Filter and selection properties for ADMIN
   isAdmin = false;
+  canManageMembers = false;
+  currentUserMeetingRole: string | null = null; // Role of current user in the selected meeting
   selectedMembers: MeetingMember[] = [];
   filterApprovalStatus: 'all' | 'approved' | 'pending' = 'all';
   roles: Role[] = [
@@ -59,11 +62,28 @@ export class RoomDetailComponent implements OnInit {
   selectedUserForDropdown: any = null;
   private userFilterTimeout: any;
 
-  documents: Array<{ name: string; url: string }> = [
-    { name: 'Biên bản họp.pdf', url: '#' },
-    { name: 'Kế hoạch.xlsx', url: '#' }
-  ];
+  documents: Array<{ name: string; url: string }> = [];
   selectedFile: File | null = null;
+  fileType: 'final' | 'chunks' = 'final';
+  meetingFiles: Array<{
+    date: string;
+    filename: string;
+    size: number;
+    url: string;
+  }> = [];
+  loadingFiles = false;
+  isLoadingFiles = false; // Flag to prevent concurrent requests
+  showFileViewerModal = false;
+  currentViewingFile: { filename: string; url: string } | null = null;
+  pdfBlobUrl: string | null = null;
+  loadingPdf = false;
+  isConvertingPdf = false;
+  isMergingAudio = false;
+  hasPdfInFinal = false;
+  isCheckingPdf = false; // Flag to prevent concurrent PDF check requests
+  showAudioPlayerModal = false;
+  currentPlayingAudio: { filename: string; url: string } | null = null;
+  @ViewChild('audioPlayer') audioPlayerRef?: ElementRef<HTMLAudioElement>;
 
   onFileSelected(event: any) {
     const file = event.target.files[0];
@@ -122,8 +142,9 @@ export class RoomDetailComponent implements OnInit {
   showConfirmDialog: boolean = false;
   confirmDialogTitle: string = '';
   confirmDialogMessage: string = '';
-  confirmDialogType: 'join' | 'role' | 'delete' | 'reject' | null = null;
+  confirmDialogType: 'join' | 'role' | 'delete' | 'reject' | 'deleteMeeting' | null = null;
   meetingToJoin: Meeting | null = null;
+  meetingToDelete: number | null = null;
   roleChangeMember: MeetingMember | null = null;
   roleChangeRoleId: number | null = null;
   newMeeting: Partial<Meeting> = {
@@ -152,21 +173,24 @@ export class RoomDetailComponent implements OnInit {
     private authService: AuthService,
     private loadingService: LoadingService,
     private messageService: PrimeMessageService,
-    private messageDataService: MessageService
+    private messageDataService: MessageService,
+    private http: HttpClient
   ) {}
 
   ngOnInit() {
-    // Check if current user is ADMIN
-    const userRole = this.authService.getCurrentUserRole();
-    this.isAdmin = userRole === 'ADMIN';
-
-    // Get current user ID and info
+    // Get current user ID and info first
     const currentUser = this.authService.getCurrentUser();
     if (currentUser && currentUser.id) {
       this.currentUserId = currentUser.id;
       this.currentUserName = currentUser.name || '';
       this.currentUserEmail = currentUser.email || '';
     }
+
+    // Check if current user is ADMIN (global role)
+    const userRole = this.authService.getCurrentUserRole();
+    this.isAdmin = userRole === 'ADMIN';
+    // canManageMembers will be updated when meeting members are loaded
+    this.canManageMembers = userRole === 'ADMIN' || userRole === 'SECRETARY';
 
     const roomId = this.route.snapshot.paramMap.get('id');
     if (roomId) {
@@ -189,16 +213,10 @@ export class RoomDetailComponent implements OnInit {
     }
     
     const meeting = this.meetings.find(m => m.id === meetingId);
-    // Prevent selection if meeting is expired (unless user is ADMIN)
-    if (meeting?.isExpired && !this.isAdmin) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Cảnh báo',
-        detail: 'Không thể chọn cuộc họp đã hết hạn'
-      });
-      return;
-    }
+    // Allow all meetings to be selected (no disable logic)
     this.selectedMeeting = meeting || null;
+    // Reset meeting role when selecting new meeting
+    this.currentUserMeetingRole = null;
     if (this.selectedMeeting) {
       this.currentPage = 0; // Reset to first page
       this.loadMeetingMembers(this.selectedMeeting.id);
@@ -206,10 +224,33 @@ export class RoomDetailComponent implements OnInit {
       if (this.mainTab === 'messages') {
         this.loadMessages(true);
       }
+      // Load files if documents tab is active
+      if (this.mainTab === 'documents') {
+        // Ensure USER role can only see 'final' files, not 'chunks'
+        if (!this.canManageMembers && this.fileType === 'chunks') {
+          this.fileType = 'final';
+        }
+        this.loadMeetingFiles();
+        // checkPdfInFinal() will be called inside loadMeetingFiles() if fileType is 'final'
+      }
+      // If user doesn't have access to current tab (and not ADMIN/SECRETARY), switch to info tab
+      const globalRole = this.authService.getCurrentUserRole();
+      const isAdminOrSecretary = globalRole === 'ADMIN' || globalRole === 'SECRETARY';
+      if ((this.mainTab === 'room_members' || this.mainTab === 'documents') && !this.canAccessMeetingTabs() && !isAdminOrSecretary) {
+        this.mainTab = 'info';
+      }
     }
   }
 
   onAddMeeting() {
+    if (!this.canManageMeetings()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền thêm cuộc họp'
+      });
+      return;
+    }
     this.showAddMeetingModal = true;
     // Get current time and format for datetime-local input
     const now = new Date();
@@ -301,6 +342,14 @@ export class RoomDetailComponent implements OnInit {
   }
 
   editMeeting(meeting: Meeting) {
+    if (!this.canManageMeetings()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền chỉnh sửa cuộc họp'
+      });
+      return;
+    }
     this.showEditMeetingModal = true;
     const startTime = this.formatDateTimeLocal(meeting.startTime);
     const endTime = this.formatDateTimeLocal(meeting.endTime);
@@ -364,6 +413,14 @@ export class RoomDetailComponent implements OnInit {
   }
 
   updateMeeting() {
+    if (!this.canManageMeetings()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền cập nhật cuộc họp'
+      });
+      return;
+    }
     if (!this.validateEditTimes()) return;
     if (!this.editingMeeting.id) return;
     
@@ -408,6 +465,34 @@ export class RoomDetailComponent implements OnInit {
   }
 
   deleteMeeting(id: number) {
+    if (!this.canManageMeetings()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền xóa cuộc họp'
+      });
+      return;
+    }
+    
+    // Find meeting to get title for confirmation message
+    const meeting = this.meetings.find(m => m.id === id);
+    const meetingTitle = meeting?.title || 'cuộc họp này';
+    
+    // Show confirm dialog
+    this.meetingToDelete = id;
+    this.confirmDialogTitle = 'Xác nhận xóa cuộc họp';
+    this.confirmDialogMessage = `Bạn có chắc chắn muốn xóa cuộc họp "${meetingTitle}"? Hành động này không thể hoàn tác.`;
+    this.confirmDialogType = 'deleteMeeting';
+    this.showConfirmDialog = true;
+    this.meetingMenuId = null; // Close the menu
+  }
+
+  executeDeleteMeeting() {
+    if (!this.meetingToDelete) {
+      return;
+    }
+    
+    const id = this.meetingToDelete;
     this.loadingService.show();
     this.meetingService.delete(id).subscribe({
       next: () => {
@@ -417,6 +502,10 @@ export class RoomDetailComponent implements OnInit {
           summary: 'Thành công',
           detail: 'Xóa cuộc họp thành công'
         });
+        // Clear selected meeting if it was deleted
+        if (this.selectedMeeting?.id === id) {
+          this.selectedMeeting = null;
+        }
         this.loadMeetings();
       },
       error: (err) => {
@@ -432,6 +521,14 @@ export class RoomDetailComponent implements OnInit {
   }
 
   addMeeting() {
+    if (!this.canManageMeetings()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền tạo cuộc họp'
+      });
+      return;
+    }
     if (!this.validateTimes()) return;
     if (!this.newMeeting?.title || !this.newMeeting?.startTime || !this.newMeeting?.endTime) return;
     
@@ -557,13 +654,13 @@ export class RoomDetailComponent implements OnInit {
       size: this.pageSize
     };
     
-    // Only send isActive parameter if user is not admin
-    if (!this.isAdmin) {
+    // Only send isActive parameter if user is not admin (global or in meeting)
+    if (!this.hasAdminAccess()) {
       searchParams.isActive = true;
     }
 
-    // Add approval status filter if admin
-    if (this.isAdmin && this.filterApprovalStatus !== 'all') {
+    // Add approval status filter if admin (global or in meeting)
+    if (this.hasAdminAccess() && this.filterApprovalStatus !== 'all') {
       searchParams.isActive = this.filterApprovalStatus === 'approved' ? true : false;
     }
 
@@ -580,12 +677,25 @@ export class RoomDetailComponent implements OnInit {
           this.pendingCount = searchResult.pendingCount;
           this.totalMembers = res.data.totalElements;
           this.totalPages = res.data.totalPages;
+          
+          // Find current user's role in this meeting
+          const currentUserMember = this.meetingMembers.find(m => m.userId === this.currentUserId);
+          if (currentUserMember) {
+            this.currentUserMeetingRole = currentUserMember.roleName || null;
+          } else {
+            this.currentUserMeetingRole = null;
+          }
+          
+          // Update permissions based on both global role and meeting role
+          this.updateUserPermissions();
         } else {
           this.meetingMembers = [];
           this.joinedCount = 0;
           this.pendingCount = 0;
           this.totalMembers = 0;
           this.totalPages = 0;
+          this.currentUserMeetingRole = null;
+          this.updateUserPermissions();
         }
         this.selectedMembers = [];
         this.loadingService.hide();
@@ -605,6 +715,15 @@ export class RoomDetailComponent implements OnInit {
       // Load messages when switching to messages tab
       if (tab === 'messages' && this.selectedMeeting) {
         this.loadMessages(true);
+      }
+      // Load files when switching to documents tab
+      if (tab === 'documents' && this.selectedMeeting) {
+        // Ensure USER role can only see 'final' files, not 'chunks'
+        if (!this.canManageMembers && this.fileType === 'chunks') {
+          this.fileType = 'final';
+        }
+        this.loadMeetingFiles();
+        // checkPdfInFinal() will be called inside loadMeetingFiles() if fileType is 'final'
       }
       this.loadingService.hide();
     }, 100);
@@ -668,11 +787,11 @@ export class RoomDetailComponent implements OnInit {
   }
 
   joinMeeting(meeting: Meeting) {
-    if (meeting.isExpired) {
+    if (meeting.isExpired || meeting.isMeeting) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Cảnh báo',
-        detail: 'Không thể tham gia cuộc họp đã hết hạn'
+        detail: meeting.isMeeting ? 'Cuộc họp đang diễn ra' : 'Không thể tham gia cuộc họp đã hết hạn'
       });
       return;
     }
@@ -711,9 +830,9 @@ export class RoomDetailComponent implements OnInit {
     window.open(meetingUrl, '_blank');
   }
 
-  // ADMIN-only functions
+  // ADMIN/SECRETARY functions (global or in meeting)
   toggleMemberSelection(member: MeetingMember) {
-    if (!this.isAdmin) return;
+    if (!this.canManageMembers) return;
     member.selected = !member.selected;
     this.updateSelectedMembers();
   }
@@ -749,6 +868,15 @@ export class RoomDetailComponent implements OnInit {
   }
 
   onRoleChange(member: MeetingMember, roleId: number) {
+    if (!this.canManageMembers) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền thay đổi vai trò'
+      });
+      return;
+    }
+
     // If role is not changed, do nothing
     if (member.roleId === roleId) {
       return;
@@ -773,6 +901,9 @@ export class RoomDetailComponent implements OnInit {
 
     const member = this.roleChangeMember;
     const roleId = this.roleChangeRoleId;
+    // Store original role to revert if error occurs
+    const originalRoleId = member.roleId;
+    const originalRoleName = member.roleName;
 
     this.loadingService.show();
     this.memberService.updateMember(member.id, roleId, member.active).subscribe({
@@ -793,16 +924,38 @@ export class RoomDetailComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi cập nhật vai trò:', err);
         this.loadingService.hide();
+        
+        // Revert role to original value
+        member.roleId = originalRoleId;
+        member.roleName = originalRoleName;
+        
+        // Reload members to ensure UI is in sync
+        if (this.selectedMeeting) {
+          this.loadMeetingMembers(this.selectedMeeting.id);
+        }
+        
+        // Extract error message from API response
+        const errorMessage = err?.error?.message || err?.message || 'Có lỗi xảy ra khi cập nhật vai trò';
+        
         this.messageService.add({
           severity: 'error',
           summary: 'Lỗi',
-          detail: 'Có lỗi xảy ra khi cập nhật vai trò'
+          detail: errorMessage
         });
       },
     });
   }
 
   addNewMember() {
+    if (!this.canManageMembers) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Bạn không có quyền thêm thành viên'
+      });
+      return;
+    }
+
     if (!this.selectedMeeting) {
       this.messageService.add({
         severity: 'warn',
@@ -1029,10 +1182,14 @@ export class RoomDetailComponent implements OnInit {
       error: (error: any) => {
         this.loadingService.hide();
         console.error('Lỗi mời thành viên:', error);
+        
+        // Extract error message from API response
+        const errorMessage = error?.error?.message || error?.message || 'Có lỗi xảy ra khi mời thành viên vào cuộc họp';
+        
         this.messageService.add({
           severity: 'error',
           summary: 'Lỗi',
-          detail: 'Có lỗi xảy ra khi mời thành viên vào cuộc họp'
+          detail: errorMessage
         });
       }
     });
@@ -1040,6 +1197,48 @@ export class RoomDetailComponent implements OnInit {
 
   get isAllSelected(): boolean {
     return this.meetingMembers.length > 0 && this.meetingMembers.every(m => m.selected);
+  }
+
+  updateUserPermissions() {
+    // Check permissions based on both global role and meeting role
+    const globalRole = this.authService.getCurrentUserRole();
+    const meetingRole = this.currentUserMeetingRole;
+    
+    // User can manage members if they are global ADMIN/SECRETARY or have ADMIN/SECRETARY role in meeting
+    const canManage = globalRole === 'ADMIN' || globalRole === 'SECRETARY' || 
+                      meetingRole === 'ADMIN' || meetingRole === 'SECRETARY';
+    
+    this.canManageMembers = canManage;
+  }
+
+  // Helper method to check if user has admin access (global or in meeting)
+  hasAdminAccess(): boolean {
+    const globalRole = this.authService.getCurrentUserRole();
+    return globalRole === 'ADMIN' || this.currentUserMeetingRole === 'ADMIN';
+  }
+
+  // Getter for template to check admin access
+  get hasAdminAccessInMeeting(): boolean {
+    return this.hasAdminAccess();
+  }
+
+  // Check if user can manage meetings (add/edit/delete) - only ADMIN/SECRETARY global role
+  canManageMeetings(): boolean {
+    const globalRole = this.authService.getCurrentUserRole();
+    return globalRole === 'ADMIN' || globalRole === 'SECRETARY';
+  }
+
+  // Check if user can access meeting tabs (documents, members) - must have meetingRole or be ADMIN/SECRETARY
+  // USER role and other roles can view members and documents tabs (read-only)
+  canAccessMeetingTabs(): boolean {
+    const globalRole = this.authService.getCurrentUserRole();
+    // ADMIN/SECRETARY can access all tabs
+    if (globalRole === 'ADMIN' || globalRole === 'SECRETARY') {
+      return true;
+    }
+    // Other users (including USER role) can access if they have a role in the selected meeting
+    // They will have read-only access (view only, no management actions)
+    return this.currentUserMeetingRole !== null;
   }
 
 
@@ -1170,10 +1369,13 @@ export class RoomDetailComponent implements OnInit {
       this.executeJoinMeeting();
     } else if (this.confirmDialogType === 'role') {
       this.executeRoleChange();
+    } else if (this.confirmDialogType === 'deleteMeeting') {
+      this.executeDeleteMeeting();
     }
     this.showConfirmDialog = false;
     this.confirmDialogType = null;
     this.meetingToJoin = null;
+    this.meetingToDelete = null;
     this.roleChangeMember = null;
     this.roleChangeRoleId = null;
   }
@@ -1185,6 +1387,7 @@ export class RoomDetailComponent implements OnInit {
     this.showConfirmDialog = false;
     this.confirmDialogType = null;
     this.meetingToJoin = null;
+    this.meetingToDelete = null;
     this.roleChangeMember = null;
     this.roleChangeRoleId = null;
     
@@ -1373,6 +1576,352 @@ export class RoomDetailComponent implements OnInit {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    });
+  }
+
+  onFileTypeChange() {
+    // If user is not ADMIN or SECRETARY and tries to access chunks, switch back to final
+    if (this.fileType === 'chunks' && !this.canManageMembers) {
+      this.fileType = 'final';
+    }
+    
+    if (this.selectedMeeting) {
+      this.loadMeetingFiles();
+    }
+  }
+
+  loadMeetingFiles() {
+    if (!this.selectedMeeting) {
+      this.meetingFiles = [];
+      return;
+    }
+
+    // Prevent concurrent requests
+    if (this.isLoadingFiles) {
+      return;
+    }
+
+    // Ensure USER role can only access 'final' files, not 'chunks'
+    if (!this.canManageMembers && this.fileType === 'chunks') {
+      this.fileType = 'final';
+    }
+
+    this.isLoadingFiles = true;
+    this.loadingFiles = true;
+    const meetingId = this.selectedMeeting.id;
+    const apiUrl = `https://api.kma-legend.fun/api/meeting_files/${meetingId}?type=${this.fileType}`;
+
+    this.http.get<any>(apiUrl).subscribe({
+      next: (response) => {
+        this.meetingFiles = response.files || [];
+        this.loadingFiles = false;
+        this.isLoadingFiles = false;
+        
+        // Check if PDF exists in final files directly from response (no need for separate request)
+        if (this.fileType === 'final') {
+          const finalFiles = response.files || [];
+          this.hasPdfInFinal = finalFiles.some((file: any) => 
+            file.filename && file.filename.toLowerCase().endsWith('.pdf')
+          );
+        } else {
+          // Reset if not in final tab
+          this.hasPdfInFinal = false;
+        }
+      },
+      error: (error) => {
+        console.error('Lỗi tải danh sách file:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: 'Có lỗi xảy ra khi tải danh sách file'
+        });
+        this.meetingFiles = [];
+        this.loadingFiles = false;
+        this.isLoadingFiles = false;
+      }
+    });
+  }
+
+  checkPdfInFinal() {
+    if (!this.selectedMeeting) {
+      this.hasPdfInFinal = false;
+      return;
+    }
+
+    // Prevent concurrent requests
+    if (this.isCheckingPdf) {
+      return;
+    }
+
+    this.isCheckingPdf = true;
+    const meetingId = this.selectedMeeting.id;
+    const apiUrl = `https://api.kma-legend.fun/api/meeting_files/${meetingId}?type=final`;
+
+    this.http.get<any>(apiUrl).subscribe({
+      next: (response) => {
+        const finalFiles = response.files || [];
+        this.hasPdfInFinal = finalFiles.some((file: any) => 
+          file.filename && file.filename.toLowerCase().endsWith('.pdf')
+        );
+        this.isCheckingPdf = false;
+      },
+      error: (error) => {
+        console.error('Lỗi kiểm tra PDF trong final:', error);
+        this.hasPdfInFinal = false;
+        this.isCheckingPdf = false;
+      }
+    });
+  }
+
+  convertPdf() {
+    if (!this.selectedMeeting || this.isConvertingPdf || this.hasPdfInFinal) {
+      return;
+    }
+
+    this.isConvertingPdf = true;
+    const meetingId = this.selectedMeeting.id;
+    const apiUrl = 'https://api.kma-legend.fun/api/convert_pdf';
+
+    // First, update isMeeting status to true
+    this.meetingService.updateIsMeeting(meetingId).pipe(
+      // After isMeeting is updated, then convert PDF
+      switchMap(() => {
+        return this.http.post<any>(apiUrl, { meeting_id: meetingId.toString() });
+      })
+    ).subscribe({
+      next: (response) => {
+        this.isConvertingPdf = false;
+        
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã gửi yêu cầu chuyển đổi PDF thành công'
+        });
+        
+        // Reload meetings list to update isMeeting flag
+        this.loadMeetings();
+        
+        // Reload files to check if PDF was created
+        setTimeout(() => {
+          this.checkPdfInFinal();
+          if (this.fileType === 'final') {
+            this.loadMeetingFiles();
+          }
+        }, 2000);
+      },
+      error: (error) => {
+        console.error('Lỗi chuyển đổi PDF:', error);
+        this.isConvertingPdf = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: error.error?.message || 'Có lỗi xảy ra khi chuyển đổi PDF'
+        });
+      }
+    });
+  }
+
+  mergeAudio() {
+    if (!this.selectedMeeting || this.isMergingAudio) {
+      return;
+    }
+
+    this.isMergingAudio = true;
+    const meetingId = this.selectedMeeting.id;
+    const apiUrl = 'https://api.kma-legend.fun/api/merge_audio';
+
+    this.http.post<any>(apiUrl, { meeting_id: meetingId.toString() }).subscribe({
+      next: (response) => {
+        // Response format: { "meeting_id": "37", "status": "merge_queued" }
+        console.log('Merge audio response:', response);
+        
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã gửi yêu cầu merge audio thành công'
+        });
+        
+        // Fake loading: show loading bar for a period of time, then hide it
+        // Reload files after some time to check for merged file
+        setTimeout(() => {
+          if (this.fileType === 'chunks' || this.fileType === 'final') {
+            this.loadMeetingFiles();
+          }
+        }, 5000);
+        
+        // Hide loading bar after fake loading period (10 seconds total)
+        setTimeout(() => {
+          this.isMergingAudio = false;
+        }, 10000);
+      },
+      error: (error) => {
+        console.error('Lỗi merge audio:', error);
+        this.isMergingAudio = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: error.error?.message || 'Có lỗi xảy ra khi merge audio'
+        });
+      }
+    });
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  getFileIcon(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'docx':
+      case 'doc':
+        return 'fa-file-word';
+      case 'pdf':
+        return 'fa-file-pdf';
+      case 'xlsx':
+      case 'xls':
+        return 'fa-file-excel';
+      case 'ogg':
+      case 'mp3':
+      case 'wav':
+        return 'fa-file-audio';
+      case 'mp4':
+      case 'avi':
+        return 'fa-file-video';
+      default:
+        return 'fa-file';
+    }
+  }
+
+  canViewFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return ext === 'pdf' || ext === 'docx' || ext === 'doc';
+  }
+
+  viewFile(file: { filename: string; url: string }) {
+    this.currentViewingFile = file;
+    this.showFileViewerModal = true;
+    
+    // Nếu là PDF, thử fetch file và tạo blob URL để tránh tự động tải xuống
+    if (this.isPdfFile(file.filename)) {
+      this.loadPdfAsBlob(file.url);
+    } else {
+      this.pdfBlobUrl = null;
+    }
+  }
+
+  loadPdfAsBlob(url: string) {
+    this.loadingPdf = true;
+    this.pdfBlobUrl = null;
+    
+    // Sử dụng HttpClient để có thể tự động thêm token qua interceptor
+    this.http.get(url, {
+      responseType: 'blob',
+      headers: {
+        'Accept': 'application/pdf'
+      }
+    }).subscribe({
+      next: (blob: Blob) => {
+        // Tạo blob URL
+        this.pdfBlobUrl = URL.createObjectURL(blob);
+        this.loadingPdf = false;
+      },
+      error: (error) => {
+        console.error('Error loading PDF:', error);
+        this.loadingPdf = false;
+        // Fallback về URL gốc nếu fetch thất bại
+        this.pdfBlobUrl = url;
+      }
+    });
+  }
+
+  closeFileViewer() {
+    // Revoke blob URL để giải phóng memory
+    if (this.pdfBlobUrl && this.pdfBlobUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(this.pdfBlobUrl);
+    }
+    this.showFileViewerModal = false;
+    this.currentViewingFile = null;
+    this.pdfBlobUrl = null;
+    this.loadingPdf = false;
+  }
+
+  getFileViewerUrl(url: string, filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    
+    if (ext === 'pdf') {
+      // Thử nhiều cách để hiển thị PDF
+      // Cách 1: Thêm #toolbar=0 vào URL để browser hiển thị inline
+      // Cách 2: Sử dụng Google Docs Viewer (fallback nếu cách 1 không hoạt động)
+      // Trước tiên thử với URL gốc + #toolbar=0
+      if (url.includes('#')) {
+        return url + '&toolbar=0';
+      }
+      return url + '#toolbar=0';
+    } else if (ext === 'docx' || ext === 'doc') {
+      // Sử dụng Office Online Viewer
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    
+    return url;
+  }
+
+  getPdfEmbedUrl(url: string): string {
+    // Ưu tiên sử dụng blob URL nếu có, nếu không thì dùng URL gốc
+    return this.pdfBlobUrl || url;
+  }
+
+  isPdfFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return ext === 'pdf';
+  }
+
+  isAudioFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const audioExtensions = ['ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac', 'webm'];
+    return audioExtensions.includes(ext || '');
+  }
+
+  playAudio(file: { filename: string; url: string }) {
+    this.currentPlayingAudio = file;
+    this.showAudioPlayerModal = true;
+    
+    // Auto play audio when modal opens
+    setTimeout(() => {
+      if (this.audioPlayerRef?.nativeElement) {
+        this.audioPlayerRef.nativeElement.play().catch(error => {
+          console.error('Error auto-playing audio:', error);
+          // Some browsers require user interaction before autoplay
+        });
+      }
+    }, 100);
+  }
+
+  closeAudioPlayer() {
+    // Stop audio playback when closing modal
+    if (this.audioPlayerRef?.nativeElement) {
+      this.audioPlayerRef.nativeElement.pause();
+      this.audioPlayerRef.nativeElement.currentTime = 0;
+    }
+    this.showAudioPlayerModal = false;
+    this.currentPlayingAudio = null;
+  }
+
+  onAudioEnded() {
+    // Audio playback ended, you can add any logic here if needed
+    console.log('Audio playback ended');
+  }
+
+  onAudioError() {
+    console.error('Error playing audio');
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Lỗi',
+      detail: 'Không thể phát file audio. Vui lòng thử lại hoặc tải xuống để nghe.'
     });
   }
 }

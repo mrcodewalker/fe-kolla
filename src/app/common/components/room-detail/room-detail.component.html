@@ -55,6 +55,7 @@
               ></i>
             </button>
             <button
+              *ngIf="canManageMeetings()"
               (click)="onAddMeeting()"
               class="border border-gray-500 rounded-md bg-white hover:bg-gray-200 text-gray-500 text-xs w-8 h-8 flex items-center justify-center shrink-0"
               title="Thêm cuộc họp mới"
@@ -70,14 +71,10 @@
           >
             <li
               *ngFor="let meeting of meetings"
-              class="px-1 py-1 pl-10 text-sm flex items-center justify-between relative"
+              class="px-1 py-1 pl-10 text-sm flex items-center justify-between relative cursor-pointer hover:bg-gray-100"
               [ngClass]="{
                 'bg-gray-200': selectedMeeting?.id === meeting.id,
-                'cursor-not-allowed opacity-50': meeting.isExpired && !isAdmin,
-                'cursor-pointer hover:bg-gray-100':
-                  !meeting.isExpired || (meeting.isExpired && isAdmin),
-                'text-gray-700':
-                  !meeting.isExpired || (meeting.isExpired && isAdmin)
+                'text-gray-700': true
               }"
               (click)="onSelectMeeting(meeting.id)"
             >
@@ -85,56 +82,56 @@
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                   <div
                     class="truncate"
-                    [class.text-red-600]="meeting.isExpired"
-                    [class.text-gray-700]="!meeting.isExpired"
+                    [class.text-red-600]="meeting.isExpired || meeting.isMeeting"
+                    [class.text-gray-700]="!meeting.isExpired && !meeting.isMeeting"
                     title="{{ meeting.title }}"
                     [style.text-decoration-line]="
-                      meeting.isExpired ? 'line-through' : 'none'
+                      (meeting.isExpired || meeting.isMeeting) ? 'line-through' : 'none'
                     "
-                    [style.opacity]="
-                      meeting.isExpired && !isAdmin ? '0.5' : '1'
-                    "
-                    title="{{ meeting.title }}"
                   >
                     <p class="line-clamp-1 overflow-hidden truncate">
                       {{ meeting.title }}
                     </p>
                   </div>
+                  <!-- Badge priority: isMeeting > isExpired > isComingSoon > membershipStatus -->
                   <span
-                    *ngIf="
-                      meeting.isComingSoon &&
-                      meeting.membershipStatus === 'APPROVED'
-                    "
-                    class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full flex-shrink-0"
-                    >Sắp diễn ra</span
+                    *ngIf="meeting.isMeeting"
+                    class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex-shrink-0"
+                    >Đã kết thúc</span
                   >
                   <span
-                    *ngIf="meeting.isExpired"
+                    *ngIf="!meeting.isMeeting && meeting.isExpired"
                     class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex-shrink-0"
                     >Đã hết hạn</span
                   >
                   <span
+                    *ngIf="!meeting.isMeeting && !meeting.isExpired && meeting.isComingSoon && meeting.membershipStatus === 'APPROVED'"
+                    class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full flex-shrink-0"
+                    >Sắp diễn ra</span
+                  >
+                  <span
                     *ngIf="
-                      !meeting.isComingSoon &&
+                      !meeting.isMeeting &&
                       !meeting.isExpired &&
+                      !meeting.isComingSoon &&
                       meeting.membershipStatus === 'APPROVED'
                     "
                     class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full flex-shrink-0"
                     >Đã duyệt</span
                   >
                   <span
-                    *ngIf="meeting.membershipStatus === 'PENDING'"
+                    *ngIf="!meeting.isMeeting && !meeting.isExpired && meeting.membershipStatus === 'PENDING'"
                     class="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full flex-shrink-0"
                     >Chờ duyệt</span
                   >
                   <span
-                    *ngIf="meeting.membershipStatus === 'NONE'"
+                    *ngIf="!meeting.isMeeting && !meeting.isExpired && meeting.membershipStatus === 'NONE'"
                     class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full flex-shrink-0"
                     >Yêu cầu</span
                   >
                 </div>
                 <div
-                  *ngIf="!meeting.isExpired || (meeting.isExpired && isAdmin)"
+                  *ngIf="canManageMeetings() && (!meeting.isExpired && !meeting.isMeeting || ((meeting.isExpired || meeting.isMeeting) && isAdmin))"
                 >
                   <button
                     (click)="
@@ -153,11 +150,12 @@
                 <div
                   *ngIf="
                     meetingMenuId === meeting.id &&
-                    (!meeting.isExpired || (meeting.isExpired && isAdmin))
+                    (!meeting.isExpired && !meeting.isMeeting || ((meeting.isExpired || meeting.isMeeting) && isAdmin))
                   "
                   class="absolute right-0 top-7 bg-white border rounded shadow-lg w-28 py-0.5"
                 >
                   <button
+                    *ngIf="canManageMeetings()"
                     class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100"
                     (click)="editMeeting(meeting)"
                   >
@@ -165,6 +163,7 @@
                     <span class="flex-1">Chỉnh sửa</span>
                   </button>
                   <button
+                    *ngIf="canManageMeetings()"
                     class="flex items-center w-full text-left px-2 py-2 text-xs hover:bg-gray-100 text-red-600"
                     (click)="deleteMeeting(meeting.id)"
                   >
@@ -198,6 +197,7 @@
           Thông tin
         </button>
         <button
+          *ngIf="selectedMeeting && canAccessMeetingTabs()"
           class="text-gray-700 font-medium px-2 py-1 border-b-2"
           [ngClass]="{
             'border-cyan-600': mainTab === 'room_members',
@@ -228,6 +228,7 @@
           Tin nhắn
         </button>
         <button
+          *ngIf="selectedMeeting && canAccessMeetingTabs()"
           class="text-gray-700 font-medium px-2 py-1 border-b-2"
           [ngClass]="{
             'border-cyan-600': mainTab === 'documents',
@@ -240,17 +241,10 @@
       </div>
       <div *ngIf="selectedMeeting">
         <button
-          *ngIf="selectedMeeting.membershipStatus === 'APPROVED'"
-          [disabled]="selectedMeeting.isExpired"
+          *ngIf="selectedMeeting.membershipStatus === 'APPROVED' && !selectedMeeting.isExpired && !selectedMeeting.isMeeting"
           (click)="joinMeeting(selectedMeeting)"
-          class="font-semibold px-4 py-2 rounded-[8px] text-sm text-white"
-          [ngClass]="{
-            'bg-cyan-600 hover:bg-cyan-700': !selectedMeeting.isExpired,
-            'bg-gray-400 cursor-not-allowed': selectedMeeting.isExpired
-          }"
-          [title]="
-            selectedMeeting.isExpired ? 'Cuộc họp đã hết hạn' : 'Tham gia họp'
-          "
+          class="font-semibold px-4 py-2 rounded-[8px] text-sm text-white bg-cyan-600 hover:bg-cyan-700"
+          title="Tham gia họp"
         >
           Tham gia họp
         </button>
@@ -334,7 +328,7 @@
         </div>
       </ng-container>
 
-      <ng-container *ngIf="mainTab === 'room_members'">
+      <ng-container *ngIf="mainTab === 'room_members' && canAccessMeetingTabs()">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-4">
             <div class="text-sm">
@@ -357,10 +351,10 @@
             </div>
           </div>
 
-          <!-- ADMIN Filters and Actions -->
-          <div *ngIf="isAdmin" class="flex items-center gap-3">
+          <!-- ADMIN/SECRETARY Filters and Actions -->
+          <div *ngIf="canManageMembers && selectedMeeting && !selectedMeeting.isMeeting && !selectedMeeting.isExpired" class="flex items-center gap-3">
             <!-- Filter by approval status -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" *ngIf="hasAdminAccess()">
               <label class="text-sm font-medium text-gray-700"
                 >Lọc theo:
               </label>
@@ -400,7 +394,7 @@
             <thead>
               <tr class="bg-gray-100">
                 <th
-                  *ngIf="isAdmin"
+                  *ngIf="canManageMembers && selectedMeeting && !selectedMeeting.isMeeting && !selectedMeeting.isExpired"
                   class="px-3 py-2 text-center font-semibold w-12"
                 >
                   <input
@@ -421,9 +415,9 @@
               <tr
                 *ngFor="let member of meetingMembers; let i = index"
                 class="border-b hover:bg-gray-50"
-                [ngClass]="{ 'bg-blue-50': member.selected && isAdmin }"
+                [ngClass]="{ 'bg-blue-50': member.selected && canManageMembers }"
               >
-                <td *ngIf="isAdmin" class="px-3 py-2 text-center">
+                <td *ngIf="canManageMembers && selectedMeeting && !selectedMeeting.isMeeting && !selectedMeeting.isExpired" class="px-3 py-2 text-center">
                   <input
                     type="checkbox"
                     [checked]="member.selected"
@@ -438,7 +432,7 @@
                 <td class="px-3 py-2">{{ member.userEmail || "-" }}</td>
                 <td class="px-3 py-2">
                   <select
-                    *ngIf="isAdmin"
+                    *ngIf="canManageMembers && selectedMeeting && !selectedMeeting.isMeeting && !selectedMeeting.isExpired"
                     (change)="onRoleChange(member, +$any($event.target).value)"
                     class="border rounded px-2 py-1 text-sm w-full"
                   >
@@ -450,7 +444,7 @@
                       {{ translateRole(role.name) }}
                     </option>
                   </select>
-                  <span *ngIf="!isAdmin">{{
+                  <span *ngIf="!canManageMembers || (selectedMeeting && (selectedMeeting.isMeeting || selectedMeeting.isExpired))">{{
                     translateRole(member.roleName) || "-"
                   }}</span>
                 </td>
@@ -676,43 +670,211 @@
         </div>
       </ng-container>
 
-      <ng-container *ngIf="mainTab === 'documents'">
-        <div class="flex flex-col h-[75vh] border rounded shadow bg-white">
-          <div class="flex-1 overflow-y-auto p-4 space-y-2">
-            <div *ngIf="documents.length === 0" class="text-gray-400 text-sm">
-              Chưa có tài liệu nào trong cuộc họp này.
-            </div>
-            <div
-              *ngFor="let doc of documents"
-              class="flex items-center justify-between bg-gray-100 rounded px-3 py-2 mb-2"
-            >
-              <div class="flex items-center gap-2">
-                <i class="fa fa-file text-cyan-600"></i>
-                <span class="text-sm">{{ doc.name }}</span>
+      <ng-container *ngIf="mainTab === 'documents' && canAccessMeetingTabs()">
+        <div *ngIf="selectedMeeting" class="flex flex-col h-[75vh] border rounded shadow bg-white">
+          <!-- File Type Selector -->
+          <div class="border-b p-4 bg-gray-50">
+            <div class="flex items-center gap-4">
+              <label class="text-sm font-semibold text-gray-700">Loại tài liệu:</label>
+              <div class="flex gap-2">
+                <button
+                  (click)="fileType = 'final'; onFileTypeChange()"
+                  [ngClass]="{
+                    'bg-cyan-600 text-white': fileType === 'final',
+                    'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50': fileType !== 'final'
+                  }"
+                  class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Final
+                </button>
+                <button
+                  *ngIf="canManageMembers"
+                  (click)="fileType = 'chunks'; onFileTypeChange()"
+                  [ngClass]="{
+                    'bg-cyan-600 text-white': fileType === 'chunks',
+                    'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50': fileType !== 'chunks'
+                  }"
+                  class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Chunks
+                </button>
               </div>
-              <a
-                [href]="doc.url"
-                target="_blank"
-                class="text-cyan-700 text-xs px-2 py-1 rounded hover:bg-cyan-100"
-                >Tải xuống</a
-              >
+              <div class="flex items-center gap-2 ml-auto">
+                <!-- Action Buttons -->
+                <button
+                  *ngIf="canManageMembers"
+                  (click)="convertPdf()"
+                  [disabled]="isConvertingPdf || hasPdfInFinal"
+                  class="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm flex items-center gap-2 transition-colors"
+                  [title]="hasPdfInFinal ? 'File PDF đã tồn tại trong Final' : 'Chuyển đổi sang PDF'"
+                >
+                  <i class="pi pi-file-pdf"></i>
+                  <span>Chuyển đổi PDF</span>
+                </button>
+                <button
+                  *ngIf="canManageMembers"
+                  (click)="mergeAudio()"
+                  [disabled]="isMergingAudio"
+                  class="px-3 py-2 rounded bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm flex items-center gap-2 transition-colors"
+                >
+                  <i class="pi pi-volume-up"></i>
+                  <i class="pi pi-arrows-h"></i>
+                  <span>Merge Audio</span>
+                </button>
+                <button
+                  (click)="loadMeetingFiles()"
+                  class="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm flex items-center gap-2"
+                  [disabled]="loadingFiles"
+                >
+                  <i class="pi pi-refresh" [ngClass]="{'pi-spin': loadingFiles}"></i>
+                  <span>Tải lại</span>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="border-t p-3 flex items-center gap-2">
-            <input
-              type="file"
-              (change)="onFileSelected($event)"
-              class="flex-1 border rounded px-2 py-1 text-sm"
-            />
-            <button
-              class="px-3 py-1 rounded bg-cyan-600 text-white"
-              (click)="uploadFile()"
-            >
-              Tải lên
-            </button>
+
+          <!-- Files List -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <div *ngIf="loadingFiles" class="flex items-center justify-center py-8">
+              <i class="pi pi-spin pi-spinner text-cyan-600 text-2xl mr-3"></i>
+              <span class="text-gray-600">Đang tải danh sách file...</span>
+            </div>
+            
+            <div *ngIf="!loadingFiles && meetingFiles.length === 0" class="text-center py-12">
+              <i class="fa-regular fa-folder-open text-gray-300 text-5xl mb-3"></i>
+              <p class="text-gray-400 text-sm">Chưa có tài liệu nào trong cuộc họp này.</p>
+            </div>
+
+            <div *ngIf="!loadingFiles && meetingFiles.length > 0" class="space-y-3">
+              <div
+                *ngFor="let file of meetingFiles"
+                class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3 hover:shadow-md transition-shadow"
+              >
+                <div class="flex items-center gap-4 flex-1 min-w-0">
+                  <div class="flex-shrink-0 w-12 h-12 bg-cyan-50 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid text-cyan-600 text-xl" [ngClass]="getFileIcon(file.filename)"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-gray-800 text-sm mb-1 truncate" [title]="file.filename">
+                      {{ file.filename }}
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                      <span class="flex items-center gap-1">
+                        <i class="pi pi-file"></i>
+                        <span>{{ formatFileSize(file.size) }}</span>
+                      </span>
+                      <span *ngIf="file.date" class="flex items-center gap-1">
+                        <i class="pi pi-calendar"></i>
+                        <span>{{ file.date }}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex-shrink-0 ml-4 flex items-center gap-2">
+                  <button
+                    *ngIf="canViewFile(file.filename)"
+                    (click)="viewFile(file)"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <i class="pi pi-eye"></i>
+                    <span>Hiển thị</span>
+                  </button>
+                  <button
+                    *ngIf="isAudioFile(file.filename)"
+                    (click)="playAudio(file)"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <i class="pi pi-volume-up"></i>
+                    <span>Lắng nghe</span>
+                  </button>
+                  <a
+                    [href]="file.url"
+                    target="_blank"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    download
+                  >
+                    <i class="pi pi-download"></i>
+                    <span>Tải xuống</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+        <div *ngIf="!selectedMeeting" class="text-center py-12">
+          <i class="fa-regular fa-folder-open text-gray-300 text-5xl mb-3"></i>
+          <p class="text-gray-400 text-sm">Chọn một cuộc họp để xem tài liệu.</p>
+        </div>
       </ng-container>
+    </div>
+  </div>
+
+  <!-- Audio Player Modal -->
+  <div
+    *ngIf="showAudioPlayerModal && currentPlayingAudio"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 animate-fadein"
+    (click)="closeAudioPlayer()"
+  >
+    <div
+      class="bg-white rounded-lg shadow-2xl w-[90vw] max-w-[600px] flex flex-col transform transition-all duration-300 animate-modal"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+            <i class="pi pi-volume-up text-orange-600 text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-800 text-sm">{{ currentPlayingAudio.filename }}</h3>
+            <p class="text-xs text-gray-500">Đang phát audio</p>
+          </div>
+        </div>
+        <button
+          (click)="closeAudioPlayer()"
+          class="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+          title="Đóng"
+        >
+          <i class="pi pi-times text-gray-600 text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Audio Player -->
+      <div class="p-6 bg-gray-50">
+        <audio
+          #audioPlayer
+          [src]="currentPlayingAudio.url"
+          controls
+          class="w-full"
+          (ended)="onAudioEnded()"
+          (error)="onAudioError()"
+        >
+          Trình duyệt của bạn không hỗ trợ phát audio.
+        </audio>
+      </div>
+    </div>
+  </div>
+
+  <!-- Merge Audio Loading Bar -->
+  <div
+    *ngIf="isMergingAudio"
+    class="fixed bottom-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 min-w-[300px]"
+  >
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-3">
+        <i class="pi pi-spin pi-spinner text-purple-600"></i>
+        <span class="text-sm font-semibold text-gray-700">Đang merge audio...</span>
+      </div>
+      <button
+        (click)="isMergingAudio = false"
+        class="text-gray-400 hover:text-gray-600 transition-colors"
+        title="Đóng"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden relative">
+      <div class="bg-purple-600 h-2 rounded-full animate-progress"></div>
     </div>
   </div>
 
@@ -823,7 +985,7 @@
     confirmText="Xác nhận"
     cancelText="Hủy"
     [confirmButtonClass]="
-      confirmDialogType === 'delete' || confirmDialogType === 'reject'
+      confirmDialogType === 'delete' || confirmDialogType === 'reject' || confirmDialogType === 'deleteMeeting'
         ? 'bg-red-600 hover:bg-red-700'
         : 'bg-green-600 hover:bg-green-700'
     "
@@ -1062,3 +1224,82 @@
 
 <!-- PrimeNG Toast Component -->
 <p-toast></p-toast>
+
+<!-- File Viewer Modal -->
+<div
+  *ngIf="showFileViewerModal && currentViewingFile"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 animate-fadein"
+  (click)="closeFileViewer()"
+>
+  <div
+    class="bg-white rounded-lg shadow-2xl w-[95vw] h-[90vh] flex flex-col transform transition-all duration-300 animate-modal"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-cyan-50 rounded-lg flex items-center justify-center">
+          <i class="fa-solid text-cyan-600 text-lg" [ngClass]="getFileIcon(currentViewingFile.filename)"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-800 text-sm">{{ currentViewingFile.filename }}</h3>
+          <p class="text-xs text-gray-500">Xem trực tiếp</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a
+          [href]="currentViewingFile.url"
+          target="_blank"
+          download
+          class="px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+        >
+          <i class="pi pi-download"></i>
+          <span>Tải xuống</span>
+        </a>
+        <button
+          (click)="closeFileViewer()"
+          class="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+          title="Đóng"
+        >
+          <i class="pi pi-times text-gray-600 text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-hidden relative bg-gray-50" style="min-height: 0;">
+      <!-- PDF Viewer - Sử dụng embed tag với blob URL để tránh tự động tải xuống -->
+      <div *ngIf="isPdfFile(currentViewingFile.filename)" class="w-full h-full">
+        <div *ngIf="loadingPdf" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+          <div class="text-center">
+            <i class="pi pi-spin pi-spinner text-cyan-600 text-3xl mb-4"></i>
+            <p class="text-gray-600 text-sm">Đang tải PDF...</p>
+          </div>
+        </div>
+        <embed
+          *ngIf="!loadingPdf && pdfBlobUrl"
+          [src]="pdfBlobUrl | safeUrl"
+          type="application/pdf"
+          class="absolute inset-0 w-full h-full"
+          style="width: 100%; height: 100%;"
+        />
+        <embed
+          *ngIf="!loadingPdf && !pdfBlobUrl"
+          [src]="getPdfEmbedUrl(currentViewingFile.url) | safeUrl"
+          type="application/pdf"
+          class="absolute inset-0 w-full h-full"
+          style="width: 100%; height: 100%;"
+        />
+      </div>
+      <!-- DOCX/DOC Viewer - Sử dụng iframe với Office Online Viewer -->
+      <iframe
+        *ngIf="!isPdfFile(currentViewingFile.filename)"
+        [src]="getFileViewerUrl(currentViewingFile.url, currentViewingFile.filename) | safeUrl"
+        class="absolute inset-0 w-full h-full border-0"
+        frameborder="0"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>
+  </div>
+</div>

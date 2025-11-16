@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { Meeting } from '../models/meeting.model';
 import { BaseService } from './base.service';
 
@@ -58,5 +59,11 @@ export class MeetingService extends BaseService<Meeting> {
     return this.http.get<any>(`${this.apiUrl}/search`, { params: queryParams });
   }
 
-  
+  /**
+   * Update isMeeting status to true
+   * @param id Meeting ID
+   */
+  updateIsMeeting(id: number): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${id}/is-meeting`, {});
+  }
 }

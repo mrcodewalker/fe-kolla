@@ -20,8 +20,45 @@
 :host ::ng-deep .user-search-dropdown {
   .p-dropdown {
     background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 6px !important;
+    border: 2px solid #06b6d4 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.08) !important;
+    transition: all 0.2s ease-in-out !important;
+
+    &:hover {
+      box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.12) !important;
+    }
+
+    &.p-focus {
+      border-color: #0e7490 !important;
+      box-shadow: 0 0 0 4px rgba(14, 116, 144, 0.18) !important;
+    }
+
+    .p-dropdown-label {
+      padding: 0.75rem 1rem !important;
+      font-size: 0.9375rem !important;
+      font-weight: 600 !important;
+      color: #0f172a !important;
+
+      &.p-placeholder {
+        color: #0e7490 !important;
+        font-style: italic !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.01em !important;
+        text-shadow: 0 0 1px rgba(6, 182, 212, 0.4) !important;
+      }
+    }
+
+    .p-dropdown-trigger {
+      width: 3rem !important;
+      border-left: 1px solid rgba(14, 116, 144, 0.2) !important;
+      color: #0e7490 !important;
+      transition: color 0.2s ease !important;
+
+      &:hover {
+        color: #0891b2 !important;
+      }
+    }
   }
   
   .p-dropdown-panel {
@@ -124,4 +161,24 @@ html body app-room-detail .user-search-dropdown .p-dropdown-panel .p-dropdown-he
     pointer-events: none !important;
     z-index: 10 !important;
   }
+}
+
+// Merge Audio Progress Bar Animation
+@keyframes progress {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 75%;
+    margin-left: 25%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+.animate-progress {
+  animation: progress 2s linear infinite;
 }
