@@ -82,8 +82,8 @@ export class ManagementComponent implements OnInit {
       field: 'userCode', 
       header: 'Mã User', 
       filterType: 'text', 
-      visible: true, 
-      defaultVisible: true 
+      visible: false, 
+      defaultVisible: false 
     },
     { 
       field: 'phoneNumber', 
@@ -541,8 +541,9 @@ export class ManagementComponent implements OnInit {
           this.showAddDialog = false;
           this.addForm.reset();
           
-          if (response && response.success) {
-            console.log('Thêm tài khoản thành công:', response.message);
+          // Check if response is a valid user object (has id property)
+          if (response && response!.id) {
+            console.log('Thêm tài khoản thành công:', response);
             this.loadData(); // Refresh data table only on success
             this.messageService.add({
               severity: 'success',
@@ -551,11 +552,11 @@ export class ManagementComponent implements OnInit {
               life: 3000
             });
           } else {
-            console.error('Thêm tài khoản thất bại:', response?.message || 'Unknown error');
+            console.error('Thêm tài khoản thất bại:', response);
             this.messageService.add({
               severity: 'error',
               summary: 'Thất bại',
-              detail: response?.message || 'Tạo tài khoản thất bại',
+              detail: 'Tạo tài khoản thất bại',
               life: 4000
             });
           }

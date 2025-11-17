@@ -702,7 +702,7 @@
               <div class="flex items-center gap-2 ml-auto">
                 <!-- Action Buttons -->
                 <button
-                  *ngIf="canManageMembers"
+                  *ngIf="canManageMembers && fileType === 'final'"
                   (click)="convertPdf()"
                   [disabled]="isConvertingPdf || hasPdfInFinal"
                   class="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm flex items-center gap-2 transition-colors"

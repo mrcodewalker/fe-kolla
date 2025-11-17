@@ -53,6 +53,24 @@
           <span *ngSwitchCase="'currency'">
             {{rowData[col.field] | currency:col.currency || 'USD'}}
           </span>
+          <ng-container *ngSwitchCase="'badge'">
+            <ng-container *ngIf="getBadgeMeta(col, rowData[col.field]) as badge">
+              <span 
+                class="badge-cell" 
+                [ngClass]="{'has-dot': badge.showPulseDot}" 
+                [ngStyle]="{
+                  'background-color': badge.backgroundColor,
+                  'color': badge.textColor
+                }">
+                <span 
+                  *ngIf="badge.showPulseDot" 
+                  class="badge-dot" 
+                  [ngStyle]="{'background-color': badge.dotColor || badge.textColor}">
+                </span>
+                {{badge.label}}
+              </span>
+            </ng-container>
+          </ng-container>
           <span *ngSwitchDefault>
             {{rowData[col.field]}}
           </span>

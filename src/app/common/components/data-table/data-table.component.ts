@@ -64,5 +64,43 @@ export class DataTableComponent<T> {
     this.table.filterGlobal(filterValue, 'contains');
   }
 
+  getBadgeMeta(column: any, value: any) {
+    const badgeMap = column?.badgeMap || {};
+    let normalizedValue: string;
+
+    if (typeof value === 'string') {
+      normalizedValue = value.trim() ? value.trim().toUpperCase() : 'NULL';
+    } else if (typeof value === 'boolean') {
+      normalizedValue = value ? 'TRUE' : 'FALSE';
+    } else if (value === null || value === undefined) {
+      normalizedValue = 'NULL';
+    } else {
+      normalizedValue = String(value).trim().toUpperCase() || 'NULL';
+    }
+
+    const fallbackLabel =
+      typeof value === 'string' && value.trim()
+        ? value
+        : (badgeMap['NULL']?.label ?? 'Không xác định');
+
+    const defaultMeta = badgeMap['default'] || {
+      label: fallbackLabel,
+      textColor: '#0f172a',
+      backgroundColor: '#e2e8f0'
+    };
+
+    const resolvedMeta =
+      badgeMap[normalizedValue] ||
+      defaultMeta;
+
+    return {
+      label: resolvedMeta.label ?? defaultMeta.label ?? fallbackLabel,
+      textColor: resolvedMeta.textColor ?? defaultMeta.textColor,
+      backgroundColor: resolvedMeta.backgroundColor ?? defaultMeta.backgroundColor,
+      showPulseDot: resolvedMeta.showPulseDot ?? defaultMeta.showPulseDot,
+      dotColor: resolvedMeta.dotColor ?? defaultMeta.dotColor
+    };
+  }
+
   // Removed rows per page functionality - fixed at 10 rows
 }

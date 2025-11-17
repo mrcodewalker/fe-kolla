@@ -708,6 +708,10 @@ export class RoomDetailComponent implements OnInit {
   }
 
   onTabChange(tab: 'info' | 'room_members' | 'organizer' | 'messages' | 'documents') {
+    // Avoid re-triggering data loads when clicking on the already active tab
+    if (this.mainTab === tab) {
+      return;
+    }
     this.loadingService.show();
     // Small delay to show loading animation
     setTimeout(() => {

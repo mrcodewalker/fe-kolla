@@ -12,9 +12,21 @@ export interface RegisterRequest {
 }
 
 export interface RegisterResponse {
-  success: boolean;
-  message: string;
-  data?: any;
+  id: number;
+  email: string;
+  name: string;
+  imgUrl?: string | null;
+  department?: string;
+  position?: string;
+  role?: string;
+  userCode?: string | null;
+  dob?: string | null;
+  bankName?: string | null;
+  bankNumber?: string | null;
+  address?: string | null;
+  phoneNumber?: string | null;
+  degree?: string;
+  active?: boolean;
 }
 
 @Injectable({

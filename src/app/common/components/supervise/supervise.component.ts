@@ -3,6 +3,14 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { UserSessionService, UserSessionItem, UserSessionSearchParams } from '../../services/user-session.service';
 import { UserDataService } from '../../services/user-data.service';
 
+interface BadgeMeta {
+  label: string;
+  textColor: string;
+  backgroundColor: string;
+  showPulseDot?: boolean;
+  dotColor?: string;
+}
+
 interface ColumnConfig {
   field: keyof UserSessionItem;
   header: string;
@@ -13,6 +21,7 @@ interface ColumnConfig {
   defaultVisible: boolean;
   alwaysVisible?: boolean;
   sortable?: boolean;
+  badgeMap?: Record<string, BadgeMeta>;
 }
 
 @Component({
@@ -40,6 +49,67 @@ export class SuperviseComponent implements OnInit {
   private userFilterTimeout: any;
   selectedUserId: string | null = null;
   userDropdownHovered = false;
+
+  actionBadgeMap: Record<string, BadgeMeta> = {
+    LOGIN: {
+      label: 'Đăng nhập',
+      textColor: '#0f766e',
+      backgroundColor: '#ccfbf1'
+    },
+    CREATE_USER: {
+      label: 'Tạo người dùng',
+      textColor: '#15803d',
+      backgroundColor: '#dcfce7'
+    },
+    CHANGE_PASSWORD: {
+      label: 'Đổi mật khẩu',
+      textColor: '#b45309',
+      backgroundColor: '#fef3c7'
+    },
+    UPDATE_INFO: {
+      label: 'Cập nhật thông tin',
+      textColor: '#4c1d95',
+      backgroundColor: '#ede9fe'
+    },
+    NULL: {
+      label: 'Không xác định',
+      textColor: '#475569',
+      backgroundColor: '#e2e8f0'
+    },
+    default: {
+      label: 'Không xác định',
+      textColor: '#475569',
+      backgroundColor: '#e2e8f0'
+    }
+  };
+
+  statusBadgeMap: Record<string, BadgeMeta> = {
+    TRUE: {
+      label: 'Active',
+      textColor: '#166534',
+      backgroundColor: '#dcfce7',
+      showPulseDot: true,
+      dotColor: '#22c55e'
+    },
+    FALSE: {
+      label: 'Closed',
+      textColor: '#475569',
+      backgroundColor: '#e2e8f0',
+      dotColor: '#94a3b8'
+    },
+    NULL: {
+      label: 'Không xác định',
+      textColor: '#475569',
+      backgroundColor: '#e2e8f0',
+      dotColor: '#94a3b8'
+    },
+    default: {
+      label: 'Không xác định',
+      textColor: '#475569',
+      backgroundColor: '#e2e8f0',
+      dotColor: '#94a3b8'
+    }
+  };
 
   columnConfig: ColumnConfig[] = [
     { 
@@ -111,17 +181,21 @@ export class SuperviseComponent implements OnInit {
     { 
       field: 'action', 
       header: 'Hành động', 
-      filterType: 'text', 
+      filterType: 'text',
+      type: 'badge',
       visible: true, 
-      defaultVisible: true 
+      defaultVisible: true,
+      badgeMap: this.actionBadgeMap
     },
     { 
       field: 'active', 
       header: 'Trạng thái', 
       filterType: 'text', 
+      type: 'badge',
       visible: true, 
       defaultVisible: true,
-      sortable: false
+      sortable: false,
+      badgeMap: this.statusBadgeMap
     }
   ];
 
