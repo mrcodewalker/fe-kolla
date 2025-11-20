@@ -1,6 +1,15 @@
 interface MeetingWithHover extends Meeting {
   hover: boolean;
 }
+
+interface DocumentSegment {
+  type: 'protected' | 'editable';
+  content: string;
+  originalIndex: number;
+  segmentType?: 'header' | 'timestamp' | 'speaker';
+  hasNewlineAfter?: boolean;
+  leadingWhitespace?: string;
+}
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -98,16 +107,10 @@ export class RoomDetailComponent implements OnInit {
   isDocumentContentLoading = false;
   isSavingDocument = false;
   currentEditingFile: { filename: string; url: string } | null = null;
-  protectedRanges: Array<{ start: number; end: number; type: 'header' | 'timestamp' }> = [];
+  protectedRanges: Array<{ start: number; end: number; type: 'header' | 'timestamp' | 'speaker' }> = [];
   
   // Document segments for display
-  documentSegments: Array<{ 
-    type: 'protected' | 'editable'; 
-    content: string; 
-    originalIndex: number;
-    segmentType?: 'header' | 'timestamp';
-    hasNewlineAfter?: boolean; // Track if this segment should have \n after it
-  }> = [];
+  documentSegments: DocumentSegment[] = [];
   editableSegments: Array<{ index: number; content: string }> = [];
 
   onFileSelected(event: any) {
@@ -2137,6 +2140,18 @@ export class RoomDetailComponent implements OnInit {
     });
   }
 
+  public onEditDocumentButtonClick(file: { filename: string; url: string }) {
+    if (!this.hasPdfInFinal) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Yêu cầu chuyển đổi PDF',
+        detail: 'Bạn cần ấn "Chuyển đổi PDF - Ký số điện tử" trước khi chỉnh sửa biên bản .docx.'
+      });
+      return;
+    }
+    this.editDocument(file);
+  }
+
   editDocument(file: { filename: string; url: string }) {
     if (!this.selectedMeeting || !this.currentUserId) {
       this.messageService.add({
@@ -2231,6 +2246,9 @@ export class RoomDetailComponent implements OnInit {
     for (let i = 0; i < this.documentSegments.length; i++) {
       const segment = this.documentSegments[i];
       let segmentContent = segment.content;
+      if (segment.leadingWhitespace) {
+        segmentContent = segment.leadingWhitespace + segmentContent;
+      }
       
       // Add newline after segment if needed
       if (segment.hasNewlineAfter) {
@@ -2272,11 +2290,11 @@ export class RoomDetailComponent implements OnInit {
   /**
    * Handle click on protected segment (header or timestamp)
    */
-  onProtectedSegmentClick(segmentType: 'header' | 'timestamp' | undefined): void {
+  onProtectedSegmentClick(segmentType: 'header' | 'timestamp' | 'speaker' | undefined): void {
     this.messageService.add({
       severity: 'error',
       summary: 'Không được phép',
-      detail: 'Không chỉnh sửa được thời gian và tiêu đề gốc của biên bản'
+      detail: 'Không chỉnh sửa được thời gian, tiêu đề và thông tin người phát biểu của biên bản'
     });
   }
 
@@ -2289,76 +2307,76 @@ export class RoomDetailComponent implements OnInit {
     if (!content) return;
 
     const lines = content.split('\n');
-    let currentIndex = 0;
     let segmentIndex = 0;
+    let processedHeaderLines = 0;
 
-    // Process first two lines (header)
-    if (lines.length >= 2) {
-      const line1 = lines[0];
-      const line2 = lines[1];
-      
-      // Check if line 1 matches "Bien ban cuoc hop: [number]"
-      const headerMatch = line1.match(/^Bien ban cuoc hop:\s*\d+/i);
-      if (headerMatch) {
-        this.documentSegments.push({
-          type: 'protected',
-          content: line1, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          segmentType: 'header',
-          hasNewlineAfter: true
-        });
-        currentIndex += line1.length + 1;
-      } else {
-        // If not header, it's editable
-        this.documentSegments.push({
-          type: 'editable',
-          content: line1, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          hasNewlineAfter: true
-        });
-        this.editableSegments.push({ index: segmentIndex - 1, content: line1 });
-        currentIndex += line1.length + 1;
-      }
-      
-      // Check if line 2 matches "Created: [date]"
-      const createdMatch = line2.match(/^Created:\s*[\d\/\s:]+UTC/i);
-      if (createdMatch) {
-        this.documentSegments.push({
-          type: 'protected',
-          content: line2, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          segmentType: 'header',
-          hasNewlineAfter: true
-        });
-        currentIndex += line2.length + 1;
-      } else {
-        // If not header, it's editable
-        this.documentSegments.push({
-          type: 'editable',
-          content: line2, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          hasNewlineAfter: true
-        });
-        this.editableSegments.push({ index: segmentIndex - 1, content: line2 });
-        currentIndex += line2.length + 1;
+    const headerLine = lines[0] || '';
+    const createdLine = lines[1] || '';
+    const headerMatch = headerLine.match(/^Bien ban cuoc hop:\s*\d+/i);
+    const createdMatch = createdLine.match(/^Created:\s*.+UTC/i);
+
+    if (headerMatch && createdMatch) {
+      const headerBlock = `${headerLine}\n${createdLine}`;
+      this.documentSegments.push({
+        type: 'protected',
+        content: headerBlock,
+        originalIndex: segmentIndex++,
+        segmentType: 'header',
+        hasNewlineAfter: true
+      });
+      processedHeaderLines = 2;
+    } else {
+      const maxHeaderLines = Math.min(2, lines.length);
+      for (; processedHeaderLines < maxHeaderLines; processedHeaderLines++) {
+        const line = lines[processedHeaderLines];
+        const isLastHeaderLine = processedHeaderLines === lines.length - 1;
+        const hasNewline = !isLastHeaderLine;
+        const isHeaderLine =
+          (processedHeaderLines === 0 && headerMatch) ||
+          (processedHeaderLines === 1 && createdMatch);
+
+        if (isHeaderLine) {
+          this.documentSegments.push({
+            type: 'protected',
+            content: line,
+            originalIndex: segmentIndex++,
+            segmentType: 'header',
+            hasNewlineAfter: hasNewline
+          });
+        } else {
+          this.documentSegments.push({
+            type: 'editable',
+            content: line,
+            originalIndex: segmentIndex++,
+            hasNewlineAfter: hasNewline
+          });
+          this.editableSegments.push({ index: segmentIndex - 1, content: line });
+        }
       }
     }
 
-    // Process remaining lines
-    for (let i = 2; i < lines.length; i++) {
+    const timestampRegex = /^\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\)/;
+
+    for (let i = processedHeaderLines; i < lines.length; ) {
       const line = lines[i];
-      // Match timestamp pattern: (dd-MM-yyyy_HH-mm-ss)
-      const timestampMatch = line.match(/^(\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\))(.*)$/);
-      
-      if (timestampMatch) {
-        const timestamp = timestampMatch[1]; // Full timestamp with parentheses
-        let contentAfterTimestamp = timestampMatch[3] || ''; // Content after timestamp
-        const isLastLine = i === lines.length - 1;
-        
-        // Trim leading whitespace from content after timestamp
-        contentAfterTimestamp = contentAfterTimestamp.trimStart();
-        
-        // Add timestamp as protected segment (no newline, it's on same line as content)
+      const timestampOnlyMatch = line.match(/^(\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\))/);
+
+      if (timestampOnlyMatch) {
+        const timestamp = timestampOnlyMatch[1];
+        let afterTimestamp = line.slice(timestamp.length);
+        afterTimestamp = afterTimestamp.replace(/^\s+/, '');
+
+        const messageLines: string[] = afterTimestamp ? [afterTimestamp] : [];
+        let j = i + 1;
+
+        while (j < lines.length && !timestampRegex.test(lines[j])) {
+          messageLines.push(lines[j]);
+          j++;
+        }
+
+        const combinedMessage = messageLines.join('\n');
+        const trimmedForSpeaker = combinedMessage.replace(/^\s+/, '');
+
         this.documentSegments.push({
           type: 'protected',
           content: timestamp,
@@ -2366,29 +2384,66 @@ export class RoomDetailComponent implements OnInit {
           segmentType: 'timestamp',
           hasNewlineAfter: false
         });
-        
-        // Add content after timestamp as editable segment (without \n in content)
-        const hasNewline = !isLastLine;
-        this.documentSegments.push({
-          type: 'editable',
-          content: contentAfterTimestamp, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          hasNewlineAfter: hasNewline
-        });
-        this.editableSegments.push({ index: segmentIndex - 1, content: contentAfterTimestamp });
-      } else {
-        // No timestamp, entire line is editable
-        const isLastLine = i === lines.length - 1;
-        const hasNewline = !isLastLine;
-        this.documentSegments.push({
-          type: 'editable',
-          content: line, // Don't include \n in content
-          originalIndex: segmentIndex++,
-          hasNewlineAfter: hasNewline
-        });
-        this.editableSegments.push({ index: segmentIndex - 1, content: line });
+
+        const speakerMatch = trimmedForSpeaker.match(/^([^:]+:\s*)([\s\S]*)$/);
+
+        if (speakerMatch) {
+          const speakerLabel = this.normalizeSpeakerLabel(speakerMatch[1]);
+          const messageBody = speakerMatch[2] ?? '';
+
+          this.documentSegments.push({
+            type: 'protected',
+            content: speakerLabel,
+            originalIndex: segmentIndex++,
+            segmentType: 'speaker',
+            hasNewlineAfter: false,
+            leadingWhitespace: ' '
+          });
+
+          this.documentSegments.push({
+            type: 'editable',
+            content: messageBody,
+            originalIndex: segmentIndex++,
+            hasNewlineAfter: j < lines.length
+          });
+          this.editableSegments.push({ index: segmentIndex - 1, content: messageBody });
+        } else {
+          const fallbackContent = trimmedForSpeaker;
+          this.documentSegments.push({
+            type: 'editable',
+            content: fallbackContent,
+            originalIndex: segmentIndex++,
+            hasNewlineAfter: j < lines.length,
+            leadingWhitespace: ' '
+          });
+          this.editableSegments.push({ index: segmentIndex - 1, content: fallbackContent });
+        }
+
+        i = j;
+        continue;
       }
+
+      const isLastLine = i === lines.length - 1;
+      this.documentSegments.push({
+        type: 'editable',
+        content: line,
+        originalIndex: segmentIndex++,
+        hasNewlineAfter: !isLastLine
+      });
+      this.editableSegments.push({ index: segmentIndex - 1, content: line });
+      i++;
     }
+  }
+
+  private normalizeSpeakerLabel(rawLabel: string): string {
+    if (!rawLabel) {
+      return '';
+    }
+    const colonIndex = rawLabel.indexOf(':');
+    const labelWithoutColon =
+      colonIndex >= 0 ? rawLabel.slice(0, colonIndex) : rawLabel;
+    const normalized = labelWithoutColon.replace(/\s+/g, ' ').trim();
+    return `${normalized}: `;
   }
 
   /**
@@ -2401,12 +2456,10 @@ export class RoomDetailComponent implements OnInit {
     const lines = content.split('\n');
     let currentIndex = 0;
 
-    // Check first two lines for header
     if (lines.length >= 2) {
       const line1 = lines[0];
       const line2 = lines[1];
       
-      // Check if line 1 matches "Bien ban cuoc hop: [number]"
       const headerMatch = line1.match(/^Bien ban cuoc hop:\s*\d+/i);
       if (headerMatch) {
         this.protectedRanges.push({
@@ -2416,9 +2469,8 @@ export class RoomDetailComponent implements OnInit {
         });
       }
       
-      currentIndex += line1.length + 1; // +1 for newline
+      currentIndex += line1.length + 1;
       
-      // Check if line 2 matches "Created: [date]"
       const createdMatch = line2.match(/^Created:\s*[\d\/\s:]+UTC/i);
       if (createdMatch) {
         this.protectedRanges.push({
@@ -2428,13 +2480,11 @@ export class RoomDetailComponent implements OnInit {
         });
       }
       
-      currentIndex += line2.length + 1; // +1 for newline
+      currentIndex += line2.length + 1;
     }
 
-    // Check remaining lines for timestamps
     for (let i = 2; i < lines.length; i++) {
       const line = lines[i];
-      // Match timestamp pattern: (dd-MM-yyyy_HH-mm-ss)
       const timestampMatch = line.match(/^\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\)/);
       if (timestampMatch) {
         const timestampLength = timestampMatch[0].length;
@@ -2443,9 +2493,59 @@ export class RoomDetailComponent implements OnInit {
           end: currentIndex + timestampLength,
           type: 'timestamp'
         });
+
+        const remaining = line.substring(timestampLength);
+        const speakerMatch = remaining.match(/^(\s*[^:]+:\s*)/);
+        if (speakerMatch) {
+          this.protectedRanges.push({
+            start: currentIndex + timestampLength,
+            end: currentIndex + timestampLength + speakerMatch[1].length,
+            type: 'speaker'
+          });
+        }
       }
-      currentIndex += line.length + 1; // +1 for newline
+      currentIndex += line.length + 1;
     }
+  }
+
+  public getSpeakerSegment(index: number): DocumentSegment | null {
+    const possibleSegment = this.documentSegments[index + 1];
+    if (
+      possibleSegment &&
+      possibleSegment.type === 'protected' &&
+      possibleSegment.segmentType === 'speaker'
+    ) {
+      return possibleSegment;
+    }
+    return null;
+  }
+
+  public getEditableSegmentAfterTimestamp(index: number): DocumentSegment | null {
+    const nextSegment = this.documentSegments[index + 1];
+    if (
+      nextSegment &&
+      nextSegment.type === 'protected' &&
+      nextSegment.segmentType === 'speaker'
+    ) {
+      const candidate = this.documentSegments[index + 2];
+      return candidate && candidate.type === 'editable' ? candidate : null;
+    }
+    return nextSegment && nextSegment.type === 'editable' ? nextSegment : null;
+  }
+
+  public shouldRenderStandaloneEditable(index: number): boolean {
+    const segment = this.documentSegments[index];
+    if (!segment || segment.type !== 'editable') {
+      return false;
+    }
+    const prevSegment = this.documentSegments[index - 1];
+    if (!prevSegment) {
+      return true;
+    }
+    if (prevSegment.segmentType === 'timestamp' || prevSegment.segmentType === 'speaker') {
+      return false;
+    }
+    return prevSegment.type !== 'editable';
   }
 
   /**
