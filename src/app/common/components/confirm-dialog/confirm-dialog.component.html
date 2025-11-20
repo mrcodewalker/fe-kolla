@@ -1,5 +1,5 @@
 <!-- Modal Overlay -->
-<div *ngIf="showDialog" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50 animate-fade-in" (click)="onOverlayClick()">
+<div *ngIf="showDialog" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-[60] animate-fade-in" (click)="onOverlayClick()">
   <div class="bg-white rounded-lg shadow-xl w-full max-w-md transform animate-modal-in" (click)="$event.stopPropagation()">
     <!-- Header -->
     <div class="border-b px-6 py-4 flex items-center justify-between">

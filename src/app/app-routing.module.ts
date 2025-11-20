@@ -19,6 +19,7 @@ import { SuperviseComponent } from './common/components/supervise/supervise.comp
 import { JoinHistoryComponent } from './common/components/join-history/join-history.component';
 import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
 import { ChangePasswordComponent } from './common/components/change-password/change-password.component';
+import { EditLogManagementComponent } from './common/components/edit-log-management/edit-log-management.component';
 
 
 const routes: Routes = [
@@ -84,7 +85,8 @@ const routes: Routes = [
     { path: 'management', component: ManagementComponent, canActivate: [AuthGuard] },
     { path: 'supervise', component: SuperviseComponent, canActivate: [AuthGuard] },
     { path: 'join-history', component: JoinHistoryComponent, canActivate: [AuthGuard] },
-    { path: 'join-history-management', component: JoinHistoryManagementComponent, canActivate: [AuthGuard] }
+    { path: 'join-history-management', component: JoinHistoryManagementComponent, canActivate: [AuthGuard] },
+    { path: 'edit-log-management', component: EditLogManagementComponent, canActivate: [AuthGuard] }
   ]
 },
   { path: '**', redirectTo: 'login' }

@@ -179,10 +179,8 @@ export class ApproveComponent implements OnInit {
 
   // Called when dropdown is shown - load initial 10 random meetings
   onMeetingDropdownShow(): void {
-    // Only load if suggestions are empty
-    if (this.meetingSuggestions.length === 0) {
-      this.loadInitialMeetings();
-    }
+    // Always reload to get the latest meetings
+    this.loadInitialMeetings();
   }
 
   // Load initial 10 random meetings
@@ -383,6 +381,9 @@ export class ApproveComponent implements OnInit {
     this.meetingSuggestions = [];
     this.memberSuggestions = [];
     this.page = 0;
+    // Reload initial meetings and members to refresh the dropdown lists
+    this.loadInitialMeetings();
+    this.loadInitialMembers();
     this.loadData();
   }
 

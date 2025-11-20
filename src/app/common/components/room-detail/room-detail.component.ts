@@ -12,10 +12,11 @@ import { MemberService } from '../../services/member.service';
 import { AuthService } from '../../services/auth.service';
 import { LoadingService } from '../../services/loading.service';
 import { MessageService, MessageItem } from '../../services/message.service';
+import { DocumentEditLogService } from '../../services/document-edit-log.service';
 import { Room } from '../../models/room.model';
 import { Meeting } from '../../models/meeting.model';
 import { MeetingMember, MembershipRequest, Role } from '../../models/member.model';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, firstValueFrom } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { User } from '../../models/user.model';
 
@@ -77,13 +78,37 @@ export class RoomDetailComponent implements OnInit {
   currentViewingFile: { filename: string; url: string } | null = null;
   pdfBlobUrl: string | null = null;
   loadingPdf = false;
+  @ViewChild('docxViewerIframe') docxViewerIframe?: ElementRef<HTMLIFrameElement>;
   isConvertingPdf = false;
   isMergingAudio = false;
   hasPdfInFinal = false;
+  hasDocxInFinal = false;
+  hasAudioInChunks = false;
   isCheckingPdf = false; // Flag to prevent concurrent PDF check requests
   showAudioPlayerModal = false;
   currentPlayingAudio: { filename: string; url: string } | null = null;
   @ViewChild('audioPlayer') audioPlayerRef?: ElementRef<HTMLAudioElement>;
+  showPdfPipelineLoader = false;
+  pdfPipelineStep: 'create_key' | 'convert_pdf' | 'sign_pdf' | 'update_status' | null = null;
+  
+  // Document editor properties
+  showDocumentEditorModal = false;
+  documentContent: string = '';
+  originalDocumentContent: string = '';
+  isDocumentContentLoading = false;
+  isSavingDocument = false;
+  currentEditingFile: { filename: string; url: string } | null = null;
+  protectedRanges: Array<{ start: number; end: number; type: 'header' | 'timestamp' }> = [];
+  
+  // Document segments for display
+  documentSegments: Array<{ 
+    type: 'protected' | 'editable'; 
+    content: string; 
+    originalIndex: number;
+    segmentType?: 'header' | 'timestamp';
+    hasNewlineAfter?: boolean; // Track if this segment should have \n after it
+  }> = [];
+  editableSegments: Array<{ index: number; content: string }> = [];
 
   onFileSelected(event: any) {
     const file = event.target.files[0];
@@ -142,7 +167,7 @@ export class RoomDetailComponent implements OnInit {
   showConfirmDialog: boolean = false;
   confirmDialogTitle: string = '';
   confirmDialogMessage: string = '';
-  confirmDialogType: 'join' | 'role' | 'delete' | 'reject' | 'deleteMeeting' | null = null;
+  confirmDialogType: 'join' | 'role' | 'delete' | 'reject' | 'deleteMeeting' | 'saveDocument' | 'closeDocumentEditor' | null = null;
   meetingToJoin: Meeting | null = null;
   meetingToDelete: number | null = null;
   roleChangeMember: MeetingMember | null = null;
@@ -174,6 +199,7 @@ export class RoomDetailComponent implements OnInit {
     private loadingService: LoadingService,
     private messageService: PrimeMessageService,
     private messageDataService: MessageService,
+    private documentEditLogService: DocumentEditLogService,
     private http: HttpClient
   ) {}
 
@@ -1375,6 +1401,10 @@ export class RoomDetailComponent implements OnInit {
       this.executeRoleChange();
     } else if (this.confirmDialogType === 'deleteMeeting') {
       this.executeDeleteMeeting();
+    } else if (this.confirmDialogType === 'saveDocument') {
+      this.executeSaveDocument();
+    } else if (this.confirmDialogType === 'closeDocumentEditor') {
+      this.doCloseDocumentEditor();
     }
     this.showConfirmDialog = false;
     this.confirmDialogType = null;
@@ -1620,6 +1650,10 @@ export class RoomDetailComponent implements OnInit {
         this.meetingFiles = response.files || [];
         this.loadingFiles = false;
         this.isLoadingFiles = false;
+
+        if (this.meetingFiles.length === 0) {
+          this.showNoFilesToast();
+        }
         
         // Check if PDF exists in final files directly from response (no need for separate request)
         if (this.fileType === 'final') {
@@ -1627,21 +1661,47 @@ export class RoomDetailComponent implements OnInit {
           this.hasPdfInFinal = finalFiles.some((file: any) => 
             file.filename && file.filename.toLowerCase().endsWith('.pdf')
           );
+          this.hasDocxInFinal = finalFiles.some((file: any) => {
+            const filename = file.filename?.toLowerCase() || '';
+            return filename.endsWith('.docx') || filename.endsWith('.doc');
+          });
+          this.hasAudioInChunks = false;
         } else {
-          // Reset if not in final tab
+          // Reset final flags when not in final tab
           this.hasPdfInFinal = false;
+          this.hasDocxInFinal = false;
+          const chunkFiles = response.files || [];
+          this.hasAudioInChunks = chunkFiles.some((file: any) => {
+            const ext = file.filename?.split('.').pop()?.toLowerCase() || '';
+            return ['ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac', 'webm'].includes(ext);
+          });
         }
       },
       error: (error) => {
-        console.error('Lỗi tải danh sách file:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Lỗi',
-          detail: 'Có lỗi xảy ra khi tải danh sách file'
-        });
+        const backendMessage = error?.error?.error || error?.error?.message || '';
+        const normalizedMessage = backendMessage.toLowerCase();
+        const allowEmptyMessage =
+          normalizedMessage.includes('folder does not exist') ||
+          normalizedMessage.includes('meeting_id not found');
+
+        console.warn('Lỗi tải danh sách file:', error);
+
+        if (!allowEmptyMessage) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: 'Có lỗi xảy ra khi tải danh sách file'
+          });
+        } else {
+          this.showNoFilesToast();
+        }
+
         this.meetingFiles = [];
         this.loadingFiles = false;
         this.isLoadingFiles = false;
+        this.hasPdfInFinal = false;
+        this.hasDocxInFinal = false;
+        this.hasAudioInChunks = false;
       }
     });
   }
@@ -1677,52 +1737,146 @@ export class RoomDetailComponent implements OnInit {
     });
   }
 
-  convertPdf() {
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async convertPdf() {
     if (!this.selectedMeeting || this.isConvertingPdf || this.hasPdfInFinal) {
       return;
     }
 
-    this.isConvertingPdf = true;
-    const meetingId = this.selectedMeeting.id;
-    const apiUrl = 'https://api.kma-legend.fun/api/convert_pdf';
+    if (!this.hasDocxInFinal) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Thiếu tài liệu',
+        detail: 'Cần có ít nhất một file DOC/DOCX trong Final trước khi chuyển đổi PDF.'
+      });
+      return;
+    }
 
-    // First, update isMeeting status to true
-    this.meetingService.updateIsMeeting(meetingId).pipe(
-      // After isMeeting is updated, then convert PDF
-      switchMap(() => {
-        return this.http.post<any>(apiUrl, { meeting_id: meetingId.toString() });
-      })
-    ).subscribe({
-      next: (response) => {
-        this.isConvertingPdf = false;
-        
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Thành công',
-          detail: 'Đã gửi yêu cầu chuyển đổi PDF thành công'
-        });
-        
-        // Reload meetings list to update isMeeting flag
-        this.loadMeetings();
-        
-        // Reload files to check if PDF was created
-        setTimeout(() => {
-          this.checkPdfInFinal();
-          if (this.fileType === 'final') {
-            this.loadMeetingFiles();
-          }
-        }, 2000);
-      },
-      error: (error) => {
-        console.error('Lỗi chuyển đổi PDF:', error);
-        this.isConvertingPdf = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Lỗi',
-          detail: error.error?.message || 'Có lỗi xảy ra khi chuyển đổi PDF'
-        });
-      }
-    });
+    this.isConvertingPdf = true;
+    this.showPdfPipelineLoader = true;
+    this.pdfPipelineStep = 'create_key';
+    const meetingId = this.selectedMeeting.id;
+    const meetingIdStr = meetingId.toString();
+    const userId = this.currentUserId ? this.currentUserId.toString() : '';
+    const userEmail = this.currentUserEmail || '';
+
+    const createKeyUrl = 'https://api.kma-legend.fun/api/create_key';
+    const convertPdfUrl = 'https://api.kma-legend.fun/api/convert_pdf';
+    const signPdfUrl = 'https://api.kma-legend.fun/api/sign_pdf';
+
+    try {
+      await this.executePdfStep(
+        'create_key',
+        () =>
+          firstValueFrom(
+            this.http.post<any>(createKeyUrl, {
+              user_id: userId,
+              user_name: userEmail
+            })
+          )
+      );
+
+      await this.executePdfStep(
+        'convert_pdf',
+        () =>
+          firstValueFrom(
+            this.http.post<any>(convertPdfUrl, {
+              meeting_id: meetingIdStr
+            })
+          )
+      );
+
+      await this.delay(2000);
+
+      await this.executePdfStep(
+        'sign_pdf',
+        () =>
+          firstValueFrom(
+            this.http.post<any>(signPdfUrl, {
+              meeting_id: meetingIdStr,
+              user_id: userId,
+              user_name: userEmail
+            })
+          )
+      );
+
+      await this.delay(2000);
+
+      await this.executePdfStep('update_status', () =>
+        firstValueFrom(this.meetingService.updateIsMeeting(meetingId))
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Thành công',
+        detail: 'Đã hoàn tất quy trình chuyển đổi & ký PDF'
+      });
+
+      this.loadMeetings();
+
+      setTimeout(() => {
+        this.checkPdfInFinal();
+        // Luôn refresh list file type=final sau khi sign xong
+        const previousFileType = this.fileType;
+        this.fileType = 'final';
+        this.loadMeetingFiles();
+        // Khôi phục lại fileType nếu đang ở tab chunks
+        if (previousFileType === 'chunks' && this.mainTab === 'documents') {
+          setTimeout(() => {
+            this.fileType = 'chunks';
+          }, 100);
+        }
+      }, 2000);
+    } catch (error) {
+      // executePdfStep đã hiển thị thông báo lỗi cụ thể
+      console.error('Lỗi quy trình PDF:', error);
+    } finally {
+      this.isConvertingPdf = false;
+      this.showPdfPipelineLoader = false;
+      this.pdfPipelineStep = null;
+    }
+  }
+
+  private async executePdfStep(
+    step: 'create_key' | 'convert_pdf' | 'sign_pdf' | 'update_status',
+    action: () => Promise<any>
+  ) {
+    this.pdfPipelineStep = step;
+    try {
+      await action();
+    } catch (error: any) {
+      const backendMessage =
+        error?.error?.message ||
+        error?.error?.error ||
+        error?.message ||
+        'Không rõ lỗi';
+      this.messageService.add({
+        severity: 'error',
+        summary: this.getPdfStepErrorTitle(step),
+        detail: backendMessage
+      });
+      throw error;
+    }
+  }
+
+  private getPdfStepErrorTitle(
+    step: 'create_key' | 'convert_pdf' | 'sign_pdf' | 'update_status'
+  ): string {
+    switch (step) {
+      case 'create_key':
+        return 'Lỗi khởi tạo/sử dụng chữ ký điện tử';
+      case 'convert_pdf':
+        return 'Lỗi chuyển đổi PDF';
+      case 'sign_pdf':
+        return 'Lỗi ký tài liệu';
+      case 'update_status':
+        return 'Lỗi cập nhật trạng thái phòng';
+      default:
+        return 'Lỗi';
+    }
   }
 
   mergeAudio() {
@@ -1807,6 +1961,11 @@ export class RoomDetailComponent implements OnInit {
   }
 
   viewFile(file: { filename: string; url: string }) {
+    // Clear iframe cache by removing src first
+    if (this.docxViewerIframe?.nativeElement) {
+      this.docxViewerIframe.nativeElement.src = 'about:blank';
+    }
+    
     this.currentViewingFile = file;
     this.showFileViewerModal = true;
     
@@ -1815,6 +1974,14 @@ export class RoomDetailComponent implements OnInit {
       this.loadPdfAsBlob(file.url);
     } else {
       this.pdfBlobUrl = null;
+      // Force iframe reload by setting src after modal is shown
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        if (this.docxViewerIframe?.nativeElement && this.currentViewingFile) {
+          const viewerUrl = this.getFileViewerUrl(this.currentViewingFile.url, this.currentViewingFile.filename);
+          this.docxViewerIframe.nativeElement.src = viewerUrl;
+        }
+      }, 200);
     }
   }
 
@@ -1844,6 +2011,11 @@ export class RoomDetailComponent implements OnInit {
   }
 
   closeFileViewer() {
+    // Clear iframe src to prevent caching
+    if (this.docxViewerIframe?.nativeElement) {
+      this.docxViewerIframe.nativeElement.src = '';
+    }
+    
     // Revoke blob URL để giải phóng memory
     if (this.pdfBlobUrl && this.pdfBlobUrl.startsWith('blob:')) {
       URL.revokeObjectURL(this.pdfBlobUrl);
@@ -1867,8 +2039,12 @@ export class RoomDetailComponent implements OnInit {
       }
       return url + '#toolbar=0';
     } else if (ext === 'docx' || ext === 'doc') {
-      // Sử dụng Office Online Viewer
-      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+      // Sử dụng Office Online Viewer với cache busting
+      // Thêm timestamp để tránh cache
+      const cacheBuster = `&t=${Date.now()}`;
+      const separator = url.includes('?') ? '&' : '?';
+      const urlWithCacheBuster = url + separator + cacheBuster;
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(urlWithCacheBuster)}`;
     }
     
     return url;
@@ -1884,10 +2060,42 @@ export class RoomDetailComponent implements OnInit {
     return ext === 'pdf';
   }
 
+  isDocxFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return ext === 'docx' || ext === 'doc';
+  }
+
   isAudioFile(filename: string): boolean {
     const ext = filename.split('.').pop()?.toLowerCase();
     const audioExtensions = ['ogg', 'mp3', 'wav', 'm4a', 'aac', 'flac', 'webm'];
     return audioExtensions.includes(ext || '');
+  }
+
+  getPdfPipelineMessage(): string {
+    switch (this.pdfPipelineStep) {
+      case 'create_key':
+        return 'Đang tạo khóa bảo mật...';
+      case 'convert_pdf':
+        return 'Đang chuyển đổi file PDF...';
+      case 'sign_pdf':
+        return 'Đang ký tài liệu...';
+      case 'update_status':
+        return 'Đang cập nhật trạng thái phòng...';
+      default:
+        return 'Đang xử lý dữ liệu...';
+    }
+  }
+
+  getCurrentFileTypeLabel(): string {
+    return this.fileType === 'chunks' ? 'Chunks' : 'Final';
+  }
+
+  private showNoFilesToast() {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Không có tài liệu',
+      detail: `Không tìm thấy tài liệu nào trong mục ${this.getCurrentFileTypeLabel()}.`
+    });
   }
 
   playAudio(file: { filename: string; url: string }) {
@@ -1926,6 +2134,608 @@ export class RoomDetailComponent implements OnInit {
       severity: 'error',
       summary: 'Lỗi',
       detail: 'Không thể phát file audio. Vui lòng thử lại hoặc tải xuống để nghe.'
+    });
+  }
+
+  editDocument(file: { filename: string; url: string }) {
+    if (!this.selectedMeeting || !this.currentUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Không tìm thấy thông tin cuộc họp hoặc người dùng'
+      });
+      return;
+    }
+
+    this.currentEditingFile = file;
+    this.showDocumentEditorModal = true;
+    this.documentContent = '';
+    this.originalDocumentContent = '';
+    this.previousDocumentContent = '';
+    this.protectedRanges = [];
+    this.lastCursorPosition = 0;
+    this.isDocumentContentLoading = true;
+
+    // Fetch document content
+    const apiUrl = 'https://api.kma-legend.fun/api/get_document';
+    const payload = {
+      meeting_id: this.selectedMeeting.id.toString(),
+      user_id: this.currentUserId.toString()
+    };
+
+    this.http.post<any>(apiUrl, payload).subscribe({
+      next: (response) => {
+        const content = response.content || '';
+        this.documentContent = content;
+        this.originalDocumentContent = content;
+        this.previousDocumentContent = content;
+        this.lastCursorPosition = 0;
+        this.parseDocumentSegments(content);
+        this.parseProtectedRanges(content); // Keep for compatibility
+        this.isDocumentContentLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading document content:', error);
+        this.isDocumentContentLoading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: error.error?.message || 'Không thể tải nội dung tài liệu. Vui lòng thử lại.'
+        });
+        // Close modal on error
+        this.closeDocumentEditor();
+      }
+    });
+  }
+
+  closeDocumentEditor() {
+    // Check if content has changed
+    if (this.hasDocumentChanges()) {
+      // Show warning dialog
+      this.confirmDialogTitle = 'Xác nhận đóng';
+      this.confirmDialogMessage = 'Nội dung đã được chỉnh sửa. Nếu đóng bây giờ, các thay đổi sẽ không được lưu. Bạn có chắc chắn muốn đóng?';
+      this.confirmDialogType = 'closeDocumentEditor';
+      this.showConfirmDialog = true;
+      return;
+    }
+    
+    // If no changes, close directly
+    this.doCloseDocumentEditor();
+  }
+
+  doCloseDocumentEditor() {
+    this.showDocumentEditorModal = false;
+    this.currentEditingFile = null;
+    this.documentContent = '';
+    this.originalDocumentContent = '';
+    this.previousDocumentContent = '';
+    this.protectedRanges = [];
+    this.documentSegments = [];
+    this.editableSegments = [];
+    this.lastCursorPosition = 0;
+    this.isDocumentContentLoading = false;
+    this.isSavingDocument = false;
+  }
+
+  hasDocumentChanges(): boolean {
+    // Reconstruct document from segments and compare
+    const reconstructedContent = this.reconstructDocumentFromSegments();
+    return reconstructedContent !== this.originalDocumentContent;
+  }
+
+  /**
+   * Reconstruct full document content from segments
+   */
+  reconstructDocumentFromSegments(): string {
+    let result = '';
+    for (let i = 0; i < this.documentSegments.length; i++) {
+      const segment = this.documentSegments[i];
+      let segmentContent = segment.content;
+      
+      // Add newline after segment if needed
+      if (segment.hasNewlineAfter) {
+        segmentContent = segmentContent + '\n';
+      }
+      
+      result += segmentContent;
+    }
+    return result;
+  }
+
+  /**
+   * Update editable segment content
+   */
+  updateEditableSegment(segmentIndex: number, newContent: string): void {
+    const segment = this.documentSegments.find(s => s.originalIndex === segmentIndex);
+    if (segment && segment.type === 'editable') {
+      // Preserve newline if segment should have one
+      // Don't force add/remove newline here, let reconstruct handle it
+      segment.content = newContent;
+      // Update editableSegments array
+      const editableIndex = this.editableSegments.findIndex(e => e.index === segmentIndex);
+      if (editableIndex >= 0) {
+        this.editableSegments[editableIndex].content = newContent;
+      }
+    }
+  }
+
+  /**
+   * Handle input event for editable segment
+   */
+  onEditableSegmentInput(segmentIndex: number, event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    if (textarea) {
+      this.updateEditableSegment(segmentIndex, textarea.value);
+    }
+  }
+
+  /**
+   * Handle click on protected segment (header or timestamp)
+   */
+  onProtectedSegmentClick(segmentType: 'header' | 'timestamp' | undefined): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Không được phép',
+      detail: 'Không chỉnh sửa được thời gian và tiêu đề gốc của biên bản'
+    });
+  }
+
+  /**
+   * Parse document into segments (protected and editable)
+   */
+  parseDocumentSegments(content: string): void {
+    this.documentSegments = [];
+    this.editableSegments = [];
+    if (!content) return;
+
+    const lines = content.split('\n');
+    let currentIndex = 0;
+    let segmentIndex = 0;
+
+    // Process first two lines (header)
+    if (lines.length >= 2) {
+      const line1 = lines[0];
+      const line2 = lines[1];
+      
+      // Check if line 1 matches "Bien ban cuoc hop: [number]"
+      const headerMatch = line1.match(/^Bien ban cuoc hop:\s*\d+/i);
+      if (headerMatch) {
+        this.documentSegments.push({
+          type: 'protected',
+          content: line1, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          segmentType: 'header',
+          hasNewlineAfter: true
+        });
+        currentIndex += line1.length + 1;
+      } else {
+        // If not header, it's editable
+        this.documentSegments.push({
+          type: 'editable',
+          content: line1, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          hasNewlineAfter: true
+        });
+        this.editableSegments.push({ index: segmentIndex - 1, content: line1 });
+        currentIndex += line1.length + 1;
+      }
+      
+      // Check if line 2 matches "Created: [date]"
+      const createdMatch = line2.match(/^Created:\s*[\d\/\s:]+UTC/i);
+      if (createdMatch) {
+        this.documentSegments.push({
+          type: 'protected',
+          content: line2, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          segmentType: 'header',
+          hasNewlineAfter: true
+        });
+        currentIndex += line2.length + 1;
+      } else {
+        // If not header, it's editable
+        this.documentSegments.push({
+          type: 'editable',
+          content: line2, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          hasNewlineAfter: true
+        });
+        this.editableSegments.push({ index: segmentIndex - 1, content: line2 });
+        currentIndex += line2.length + 1;
+      }
+    }
+
+    // Process remaining lines
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      // Match timestamp pattern: (dd-MM-yyyy_HH-mm-ss)
+      const timestampMatch = line.match(/^(\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\))(.*)$/);
+      
+      if (timestampMatch) {
+        const timestamp = timestampMatch[1]; // Full timestamp with parentheses
+        let contentAfterTimestamp = timestampMatch[3] || ''; // Content after timestamp
+        const isLastLine = i === lines.length - 1;
+        
+        // Trim leading whitespace from content after timestamp
+        contentAfterTimestamp = contentAfterTimestamp.trimStart();
+        
+        // Add timestamp as protected segment (no newline, it's on same line as content)
+        this.documentSegments.push({
+          type: 'protected',
+          content: timestamp,
+          originalIndex: segmentIndex++,
+          segmentType: 'timestamp',
+          hasNewlineAfter: false
+        });
+        
+        // Add content after timestamp as editable segment (without \n in content)
+        const hasNewline = !isLastLine;
+        this.documentSegments.push({
+          type: 'editable',
+          content: contentAfterTimestamp, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          hasNewlineAfter: hasNewline
+        });
+        this.editableSegments.push({ index: segmentIndex - 1, content: contentAfterTimestamp });
+      } else {
+        // No timestamp, entire line is editable
+        const isLastLine = i === lines.length - 1;
+        const hasNewline = !isLastLine;
+        this.documentSegments.push({
+          type: 'editable',
+          content: line, // Don't include \n in content
+          originalIndex: segmentIndex++,
+          hasNewlineAfter: hasNewline
+        });
+        this.editableSegments.push({ index: segmentIndex - 1, content: line });
+      }
+    }
+  }
+
+  /**
+   * Parse protected ranges from document content (legacy method, kept for compatibility)
+   */
+  parseProtectedRanges(content: string): void {
+    this.protectedRanges = [];
+    if (!content) return;
+
+    const lines = content.split('\n');
+    let currentIndex = 0;
+
+    // Check first two lines for header
+    if (lines.length >= 2) {
+      const line1 = lines[0];
+      const line2 = lines[1];
+      
+      // Check if line 1 matches "Bien ban cuoc hop: [number]"
+      const headerMatch = line1.match(/^Bien ban cuoc hop:\s*\d+/i);
+      if (headerMatch) {
+        this.protectedRanges.push({
+          start: currentIndex,
+          end: currentIndex + line1.length,
+          type: 'header'
+        });
+      }
+      
+      currentIndex += line1.length + 1; // +1 for newline
+      
+      // Check if line 2 matches "Created: [date]"
+      const createdMatch = line2.match(/^Created:\s*[\d\/\s:]+UTC/i);
+      if (createdMatch) {
+        this.protectedRanges.push({
+          start: currentIndex,
+          end: currentIndex + line2.length,
+          type: 'header'
+        });
+      }
+      
+      currentIndex += line2.length + 1; // +1 for newline
+    }
+
+    // Check remaining lines for timestamps
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      // Match timestamp pattern: (dd-MM-yyyy_HH-mm-ss)
+      const timestampMatch = line.match(/^\((\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\)/);
+      if (timestampMatch) {
+        const timestampLength = timestampMatch[0].length;
+        this.protectedRanges.push({
+          start: currentIndex,
+          end: currentIndex + timestampLength,
+          type: 'timestamp'
+        });
+      }
+      currentIndex += line.length + 1; // +1 for newline
+    }
+  }
+
+  /**
+   * Check if a position is within a protected range
+   */
+  isPositionProtected(position: number): boolean {
+    return this.protectedRanges.some(range => 
+      position >= range.start && position <= range.end
+    );
+  }
+
+  /**
+   * Check if a selection range overlaps with protected ranges
+   */
+  isSelectionProtected(selectionStart: number, selectionEnd: number): boolean {
+    return this.protectedRanges.some(range => {
+      // Check if selection overlaps with protected range
+      return (selectionStart <= range.end && selectionEnd >= range.start);
+    });
+  }
+
+  /**
+   * Handle click event on document editor
+   */
+  onDocumentEditorClick(event: MouseEvent): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const cursorPosition = textarea.selectionStart;
+    this.lastCursorPosition = cursorPosition;
+    
+    if (this.isPositionProtected(cursorPosition)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Không được phép',
+        detail: 'Không cho sửa ngày tháng năm và tiêu đề gốc văn bản'
+      });
+      // Move cursor to a safe position (after protected range)
+      const protectedRange = this.protectedRanges.find(range => 
+        cursorPosition >= range.start && cursorPosition <= range.end
+      );
+      if (protectedRange) {
+        setTimeout(() => {
+          const safePosition = Math.min(protectedRange.end + 1, this.documentContent.length);
+          textarea.setSelectionRange(safePosition, safePosition);
+          this.lastCursorPosition = safePosition;
+        }, 0);
+      }
+    }
+  }
+
+  private previousDocumentContent: string = '';
+  private lastCursorPosition: number = 0;
+
+  /**
+   * Handle keyup event to track cursor position
+   */
+  onDocumentEditorKeyUp(event: KeyboardEvent): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    this.lastCursorPosition = textarea.selectionStart;
+  }
+
+  /**
+   * Handle input event on document editor to prevent editing protected ranges
+   */
+  onDocumentEditorInput(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const newContent = textarea.value;
+    const oldContent = this.previousDocumentContent || this.documentContent;
+    
+    // Get current cursor position
+    const currentCursorPos = textarea.selectionStart;
+    
+    // Find where the change actually occurred by comparing content
+    let changeStart = 0;
+    let changeEnd = oldContent.length;
+    
+    // Find start of change (first difference from beginning)
+    for (let i = 0; i < Math.min(oldContent.length, newContent.length); i++) {
+      if (oldContent[i] !== newContent[i]) {
+        changeStart = i;
+        break;
+      }
+    }
+    
+    // Find end of change (first difference from end)
+    let oldEnd = oldContent.length - 1;
+    let newEnd = newContent.length - 1;
+    while (oldEnd >= changeStart && newEnd >= changeStart && 
+           oldContent[oldEnd] === newContent[newEnd]) {
+      oldEnd--;
+      newEnd--;
+    }
+    changeEnd = oldEnd + 1;
+    
+    // If no change detected, just update and return
+    if (changeStart === 0 && changeEnd === oldContent.length && oldContent.length === newContent.length) {
+      this.previousDocumentContent = newContent;
+      this.lastCursorPosition = currentCursorPos;
+      return;
+    }
+    
+    // Check if the change overlaps with any protected range
+    const changeOverlapsProtected = this.protectedRanges.some(range => {
+      // Check if change start is within protected range
+      if (changeStart >= range.start && changeStart < range.end) return true;
+      // Check if change end is within protected range
+      if (changeEnd > range.start && changeEnd <= range.end) return true;
+      // Check if change completely covers protected range
+      if (changeStart <= range.start && changeEnd >= range.end) return true;
+      // Check if protected range completely covers change
+      if (range.start <= changeStart && range.end >= changeEnd) return true;
+      return false;
+    });
+    
+    if (changeOverlapsProtected) {
+      // Revert to previous content
+      this.documentContent = oldContent;
+      textarea.value = oldContent;
+      
+      // Show error message
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Không được phép',
+        detail: 'Không cho sửa ngày tháng năm và tiêu đề gốc văn bản'
+      });
+      
+      // Restore cursor position after a short delay
+      setTimeout(() => {
+        // Find a safe position after the protected range
+        const affectedRange = this.protectedRanges.find(range => {
+          if (changeStart >= range.start && changeStart < range.end) return true;
+          if (changeEnd > range.start && changeEnd <= range.end) return true;
+          if (changeStart <= range.start && changeEnd >= range.end) return true;
+          if (range.start <= changeStart && range.end >= changeEnd) return true;
+          return false;
+        });
+        
+        if (affectedRange) {
+          const safePosition = Math.min(affectedRange.end + 1, oldContent.length);
+          textarea.setSelectionRange(safePosition, safePosition);
+          this.lastCursorPosition = safePosition;
+        } else {
+          // If no specific range found, try to place cursor at a safe position
+          const safePosition = Math.min(changeStart, oldContent.length);
+          textarea.setSelectionRange(safePosition, safePosition);
+          this.lastCursorPosition = safePosition;
+        }
+      }, 0);
+    } else {
+      // Update previous content and re-parse protected ranges
+      this.previousDocumentContent = newContent;
+      this.lastCursorPosition = currentCursorPos;
+      this.parseProtectedRanges(newContent);
+    }
+  }
+
+  /**
+   * Handle keydown event to prevent deletion of protected content
+   */
+  onDocumentEditorKeyDown(event: KeyboardEvent): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    
+    // Check if user is trying to delete protected content
+    if (this.isSelectionProtected(selectionStart, selectionEnd)) {
+      // Prevent deletion
+      event.preventDefault();
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Không được phép',
+        detail: 'Không cho sửa ngày tháng năm và tiêu đề gốc văn bản'
+      });
+      return;
+    }
+    
+    // Check if cursor is at the start of a protected range and user presses backspace
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      const cursorPos = textarea.selectionStart;
+      const isAtProtectedStart = this.protectedRanges.some(range => 
+        cursorPos === range.start || cursorPos === range.end
+      );
+      
+      if (isAtProtectedStart) {
+        // Check if deletion would affect protected content
+        const deleteEnd = event.key === 'Backspace' ? selectionStart - 1 : selectionEnd + 1;
+        if (this.isPositionProtected(deleteEnd)) {
+          event.preventDefault();
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Không được phép',
+            detail: 'Không cho sửa ngày tháng năm và tiêu đề gốc văn bản'
+          });
+        }
+      }
+    }
+  }
+
+  saveDocument() {
+    if (!this.selectedMeeting || !this.currentUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cảnh báo',
+        detail: 'Không tìm thấy thông tin cuộc họp hoặc người dùng'
+      });
+      return;
+    }
+
+    // Check if content has changed
+    if (!this.hasDocumentChanges()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Thông báo',
+        detail: 'Nội dung không có thay đổi nào'
+      });
+      return;
+    }
+
+    // Show confirm dialog
+    this.confirmDialogTitle = 'Xác nhận lưu';
+    this.confirmDialogMessage = 'Bạn có muốn lưu các thay đổi vào tài liệu không?';
+    this.confirmDialogType = 'saveDocument';
+    this.showConfirmDialog = true;
+  }
+
+  executeSaveDocument() {
+    if (!this.selectedMeeting || !this.currentUserId) {
+      return;
+    }
+
+    this.isSavingDocument = true;
+
+    // Reconstruct document from segments
+    const contentToSave = this.reconstructDocumentFromSegments();
+
+    // Save document content
+    const apiUrl = 'https://api.kma-legend.fun/api/push_document';
+    const payload = {
+      content: contentToSave,
+      meeting_id: this.selectedMeeting.id.toString(),
+      user_id: this.currentUserId.toString()
+    };
+
+    this.http.post<any>(apiUrl, payload).subscribe({
+      next: (response) => {
+        this.isSavingDocument = false;
+        const savedContent = this.reconstructDocumentFromSegments();
+        this.originalDocumentContent = savedContent; // Update original content
+        this.documentContent = savedContent;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Thành công',
+          detail: 'Đã lưu tài liệu thành công'
+        });
+        
+        // Create document edit log
+        if (this.selectedMeeting && this.currentUserId) {
+          const changeSummary = `${this.currentUserName || 'Người dùng'} đã chỉnh sửa tài liệu của cuộc họp ${this.selectedMeeting.title}`;
+          this.documentEditLogService.createDocumentEditLog({
+            meetingId: this.selectedMeeting.id,
+            changeSummary: changeSummary
+          }).subscribe({
+            next: (logResponse) => {
+              // Log created successfully, no need to show message
+              console.log('Document edit log created:', logResponse);
+            },
+            error: (logError) => {
+              // Log error but don't show to user as document save was successful
+              console.error('Error creating document edit log:', logError);
+            }
+          });
+        }
+        
+        // Close modal and reload files
+        this.doCloseDocumentEditor();
+        // Reload files with type = final
+        if (this.selectedMeeting) {
+          const previousFileType = this.fileType;
+          this.fileType = 'final';
+          this.loadMeetingFiles();
+        }
+      },
+      error: (error) => {
+        console.error('Error saving document:', error);
+        this.isSavingDocument = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Lỗi',
+          detail: error.error?.message || 'Không thể lưu tài liệu. Vui lòng thử lại.'
+        });
+      }
     });
   }
 }

@@ -51,6 +51,7 @@ import { JoinHistoryComponent } from './common/components/join-history/join-hist
 import { JoinHistoryManagementComponent } from './common/components/join-history-management/join-history-management.component';
 import { ChangePasswordComponent } from './common/components/change-password/change-password.component';
 import { SafeUrlPipe } from './common/pipes/safe-url.pipe';
+import { EditLogManagementComponent } from './common/components/edit-log-management/edit-log-management.component';
 
 @NgModule({
   declarations: [
@@ -75,6 +76,7 @@ import { SafeUrlPipe } from './common/pipes/safe-url.pipe';
     JoinHistoryComponent,
     JoinHistoryManagementComponent,
     ChangePasswordComponent,
+    EditLogManagementComponent,
     SafeUrlPipe
   ],
   imports: [

@@ -1,0 +1,656 @@
+.edit-log-management-container {
+  background: #f8fafc;
+  min-height: 100vh;
+
+  .header-section {
+    .title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      color: #475569;
+      font-size: 0.9rem;
+      margin-top: 0.35rem;
+    }
+
+  }
+
+  .search-section {
+    .search-card {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      background: #ffffff;
+      position: relative;
+    }
+
+    .search-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      justify-content: flex-start;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 200px;
+
+      &.meeting-field,
+      &.editor-field {
+        min-width: 240px;
+      }
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .input-container {
+      width: 100%;
+
+      .input-field {
+        width: 100%;
+        min-height: 2.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+      }
+
+      .dropdown-field.p-dropdown {
+        width: 100%;
+        min-height: 2.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        position: relative;
+
+        .p-dropdown-label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #0f172a;
+          display: flex;
+          align-items: center;
+          min-height: 2.75rem;
+          padding: 0 3rem 0 0.75rem; // Thêm padding bên phải để tránh nút clear và trigger
+
+          &.p-placeholder {
+            color: #94a3b8;
+            font-weight: 400;
+          }
+        }
+
+        // Clear icon styling
+        .p-dropdown-clear-icon {
+          position: absolute !important;
+          right: 2.5rem !important; // Đặt bên trái của trigger
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          width: 1.5rem !important;
+          height: 1.5rem !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          cursor: pointer !important;
+          color: #6b7280 !important;
+          z-index: 1 !important;
+          margin: 0 !important;
+
+          &:hover {
+            color: #374151 !important;
+          }
+        }
+
+        // Trigger (mũi tên) styling
+        .p-dropdown-trigger {
+          width: 2.5rem !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          color: #64748b !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          position: absolute !important;
+          right: 0 !important;
+          top: 0 !important;
+          z-index: 1 !important;
+          border-left: 1px solid #e2e8f0 !important;
+        }
+      }
+    }
+
+    .actions-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+  }
+
+  .column-settings-section {
+    button {
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  }
+
+  .table-wrapper {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+  }
+
+  .editor-item,
+  .editor-selected-item {
+    display: flex;
+    flex-direction: column;
+
+    .name {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 0.85rem;
+    }
+
+    .email {
+      font-size: 0.75rem;
+      color: #475569;
+    }
+  }
+}
+
+.loading-overlay {
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: inherit;
+    z-index: 5;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f1f5f9;
+    border-top: 3px solid #06b6d4;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    transform: translate(-50%, -50%);
+    z-index: 6;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+:host ::ng-deep {
+  .btn-action {
+    height: 2.75rem;
+    border-radius: 10px;
+    font-weight: 700 !important;
+    padding: 0 1.5rem;
+    transition: all 0.2s ease;
+
+    &.p-button-primary:hover:not(.p-disabled) {
+      color: #06b6d4;
+      transform: translateY(-1px);
+    }
+
+    &.p-button-outlined:hover:not(.p-disabled) {
+      border-color: #06b6d4;
+      color: #06b6d4;
+      transform: translateY(-1px);
+    }
+  }
+
+
+  .table-wrapper {
+    .p-datatable {
+      .p-datatable-thead > tr > th {
+        background: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        padding: 0.875rem 1rem !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+        text-align: center !important;
+
+        .th-content {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 0.25rem !important;
+
+          .th-title {
+            font-size: 0.875rem !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
+          }
+
+          .p-sortable-column-icon {
+            font-size: 0.75rem !important;
+            color: #06b6d4 !important;
+          }
+        }
+
+        // Active sort column styling
+        &.p-highlight {
+          background: #f0f9ff !important;
+
+          .th-content .p-sortable-column-icon {
+            color: #0891b2 !important;
+          }
+        }
+      }
+
+      .p-datatable-tbody > tr {
+        transition: background 0.15s ease !important;
+
+        &:hover {
+          background: #f8fafc !important;
+        }
+
+        > td {
+          text-align: center;
+          padding: 0.875rem 1rem !important;
+          border-bottom: 1px solid #f1f5f9;
+          font-size: 0.875rem !important;
+          color: #334155;
+
+          &.small-text {
+            font-size: 0.8125rem !important;
+          }
+
+          .text-wrap {
+            white-space: normal;
+            word-break: break-word;
+          }
+        }
+      }
+
+      // Alternate row styling
+      .p-datatable-tbody tr:nth-child(even) {
+        td {
+          background-color: #f8fafc !important;
+        }
+      }
+
+      // Selected row styling
+      .p-datatable-tbody tr.p-highlight {
+        td {
+          background-color: #eff6ff !important;
+          color: #1e40af !important;
+        }
+      }
+
+      .p-paginator {
+        background: #ffffff !important;
+        border-top: 1px solid #e5e7eb !important;
+        padding: 1.25rem 1.5rem !important;
+        min-height: 4.5rem !important;
+        display: flex !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 1.5rem !important;
+
+        .p-paginator-current {
+          color: #374151 !important;
+          font-size: 0.875rem !important;
+          font-weight: 500 !important;
+          line-height: 1.5 !important;
+          padding: 0.5rem 0 !important;
+          margin: 0 !important;
+          flex-shrink: 0 !important;
+        }
+
+        // Navigation controls container
+        .p-paginator-first,
+        .p-paginator-prev,
+        .p-paginator-next,
+        .p-paginator-last {
+          width: 2.5rem !important;
+          height: 2.5rem !important;
+          min-width: 2.5rem !important;
+          border-radius: 6px !important;
+          border: none !important;
+          background: transparent !important;
+          color: #374151 !important;
+          font-size: 0.875rem !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+
+          &:hover:not(.p-disabled) {
+            background-color: #f3f4f6 !important;
+          }
+
+          &.p-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+          }
+        }
+
+        .p-paginator-pages {
+          display: flex !important;
+          gap: 0.25rem !important;
+
+          .p-paginator-page {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            min-width: 2.5rem !important;
+            border-radius: 6px !important;
+            border: 1px solid #d1d5db !important;
+            background: #ffffff !important;
+            color: #374151 !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+
+            &.p-highlight {
+              background-color: #06b6d4 !important;
+              border-color: #06b6d4 !important;
+              color: #ffffff !important;
+              font-weight: 600 !important;
+            }
+
+            &:hover:not(.p-highlight) {
+              background-color: #f0f9ff !important;
+              border-color: #06b6d4 !important;
+              color: #06b6d4 !important;
+            }
+          }
+        }
+
+        // Hide rows per page dropdown
+        .p-paginator-rpp-options {
+          display: none !important;
+        }
+      }
+    }
+  }
+
+  .column-selector-dialog {
+    .p-dialog {
+      border-radius: 16px;
+      border: 2px solid #9ca3af;
+      overflow: hidden;
+    }
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      color: #fff;
+    }
+
+    .p-dialog-content {
+      background: #ffffff !important;
+    }
+  }
+
+  .loading-dialog .p-dialog {
+    width: 300px;
+    border-radius: 12px;
+  }
+}
+
+.column-selector-content {
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 0 0 16px 16px;
+
+  .column-options-header {
+    text-align: center;
+
+    h4 {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    p {
+      color: #475569;
+      font-size: 0.85rem;
+    }
+  }
+
+  .column-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+
+    .column-option-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.75rem;
+      cursor: pointer;
+      background: #ffffff;
+      transition: all 0.2s ease;
+
+      &:hover:not(.disabled) {
+        border-color: #06b6d4;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(6, 182, 212, 0.15);
+      }
+
+      &.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .column-option-content {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+
+        .column-icon i.pi-check-circle {
+          color: #06b6d4;
+        }
+
+        .column-header {
+          font-weight: 600;
+          color: #0f172a;
+        }
+      }
+    }
+  }
+
+  .column-actions .dialog-action-btn {
+    width: 100%;
+    font-weight: 600;
+  }
+}
+
+:host ::ng-deep .p-dropdown-panel {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+// ===== RESPONSIVE DESIGN =====
+@media (max-width: 768px) {
+  .edit-log-management-container {
+    padding: 1rem !important;
+
+    .header-section {
+      .title {
+        font-size: 1rem;
+      }
+    }
+
+    .table-wrapper {
+      .p-datatable {
+        .p-paginator {
+          padding: 1rem !important;
+          flex-direction: column !important;
+          gap: 1rem !important;
+
+          .p-paginator-current {
+            order: 1;
+            font-size: 0.75rem !important;
+          }
+
+          .p-paginator-pages {
+            order: 2;
+            gap: 0.125rem !important;
+
+            .p-paginator-page {
+              width: 2rem !important;
+              height: 2rem !important;
+              min-width: 2rem !important;
+              font-size: 0.75rem !important;
+            }
+          }
+
+          .p-paginator-first,
+          .p-paginator-prev,
+          .p-paginator-next,
+          .p-paginator-last {
+            width: 2rem !important;
+            height: 2rem !important;
+            min-width: 2rem !important;
+            font-size: 0.75rem !important;
+          }
+        }
+      }
+    }
+
+    .column-selector-content .column-options-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// ===== FIX DROPDOWN CLEAR ICON VÀ TRIGGER KHÔNG BỊ TRÙNG =====
+:host ::ng-deep .edit-log-management-container {
+  .search-section {
+    .dropdown-field.p-dropdown {
+      position: relative !important;
+
+      .p-dropdown-label {
+        padding-right: 3rem !important; // Tạo không gian cho clear icon và trigger
+      }
+
+      // Clear icon (nút x) - đặt bên trái của trigger
+      .p-dropdown-clear-icon {
+        position: absolute !important;
+        right: 2.5rem !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        min-width: 1.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        color: #6b7280 !important;
+        z-index: 2 !important;
+        margin: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        flex-shrink: 0 !important;
+
+        &:hover {
+          color: #374151 !important;
+          background: transparent !important;
+        }
+      }
+
+      // Trigger (nút mũi tên) - đặt ở góc phải
+      .p-dropdown-trigger {
+        width: 2.5rem !important;
+        min-width: 2.5rem !important;
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #64748b !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 0 !important;
+        z-index: 1 !important;
+        border-left: 1px solid #e2e8f0 !important;
+        background: transparent !important;
+        border-radius: 0 8px 8px 0 !important;
+        flex-shrink: 0 !important;
+
+        &:hover {
+          background: #f3f4f6 !important;
+        }
+      }
+    }
+  }
+}
+
+::ng-deep .p-dropdown-panel {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12) !important;
+  background: #ffffff !important;
+
+  .p-dropdown-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 0.5rem !important;
+
+    .p-dropdown-filter {
+      width: 100% !important;
+      padding: 0.5rem 2.5rem 0.5rem 0.5rem !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 6px !important;
+      font-size: 0.85rem !important;
+    }
+
+    .p-dropdown-filter-icon {
+      position: absolute !important;
+      right: 1rem !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      color: #64748b !important;
+    }
+  }
+
+  .p-dropdown-items .p-dropdown-item {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.85rem !important;
+    color: #334155 !important;
+
+    &:hover {
+      background: #f3f4f6 !important;
+      color: #0f172a !important;
+    }
+
+    &.p-highlight {
+      background: #3b82f6 !important;
+      color: #ffffff !important;
+    }
+  }
+}

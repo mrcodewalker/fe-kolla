@@ -1,0 +1,263 @@
+<div class="edit-log-management-container p-4">
+  <p-toast position="top-right"></p-toast>
+
+  <!-- Header Section -->
+  <div class="header-section mb-4">
+    <h3 class="title m-0">Quản lý log chỉnh sửa tài liệu</h3>
+    <p class="subtitle m-0">
+      Giao diện đồng nhất với màn xét duyệt: bộ lọc nhanh, bảng dữ liệu có thể tùy chỉnh cột hiển thị.
+    </p>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section mb-3">
+    <div class="card search-card" [class.loading-overlay]="loading">
+      <div class="card-body p-4">
+        <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+          <div class="search-row">
+            <div class="field-group meeting-field">
+              <label class="field-label">
+                <span>Cuộc họp</span>
+              </label>
+              <div class="input-container">
+                <p-dropdown
+                  class="dropdown-field"
+                  [options]="meetingSuggestions"
+                  formControlName="meeting"
+                  optionLabel="title"
+                  [filter]="true"
+                  filterBy="title"
+                  [showClear]="true"
+                  placeholder="Chọn cuộc họp..."
+                  (onFilter)="onMeetingFilter($event)"
+                  (onShow)="onMeetingDropdownShow()"
+                  (onChange)="onMeetingSelect($event)"
+                >
+                </p-dropdown>
+              </div>
+            </div>
+
+            <div class="field-group editor-field">
+              <label class="field-label">
+                <span>Người chỉnh sửa</span>
+              </label>
+              <div class="input-container">
+                <p-dropdown
+                  class="dropdown-field editor-dropdown"
+                  [options]="editorSuggestions"
+                  formControlName="editor"
+                  optionLabel="displayLabel"
+                  [filter]="true"
+                  filterBy="fullName,email,displayLabel"
+                  [showClear]="true"
+                  placeholder="Tìm theo tên hoặc email..."
+                  (onFilter)="onEditorFilter($event)"
+                  (onShow)="onEditorDropdownShow()"
+                  (onChange)="onEditorSelect($event)"
+                >
+                  <ng-template pTemplate="selectedItem" let-editor>
+                    <div class="editor-selected-item" *ngIf="editor">
+                      <span class="name">{{ editor.fullName }}</span>
+                      <span class="email" *ngIf="editor.email">{{ editor.email }}</span>
+                    </div>
+                  </ng-template>
+
+                  <ng-template pTemplate="item" let-editor>
+                    <div class="editor-item">
+                      <span class="name">{{ editor.fullName }}</span>
+                      <span class="email" *ngIf="editor.email">{{ editor.email }}</span>
+                    </div>
+                  </ng-template>
+                </p-dropdown>
+              </div>
+            </div>
+
+            <div class="actions-group">
+              <button
+                pButton
+                type="button"
+                label="Làm mới"
+                class="p-button-outlined p-button-secondary btn-action"
+                [disabled]="loading"
+                (click)="onClear()"
+              ></button>
+              <button
+                pButton
+                label="Tìm kiếm"
+                type="submit"
+                class="p-button-primary btn-action"
+                [disabled]="loading"
+                [loading]="loading"
+                loadingIcon="pi pi-spin pi-spinner"
+              ></button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column Settings Section -->
+  <div class="column-settings-section mb-3">
+    <div class="flex justify-content-end">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-cog"
+        label="Tùy chỉnh hiển thị cột"
+        class="p-button-outlined p-button-info"
+        (click)="showColumnSelector = true"
+      ></button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-wrapper">
+    <p-table
+      #dt
+      [value]="rows"
+      [loading]="loading"
+      [paginator]="true"
+      [lazy]="false"
+      [rows]="size"
+      [totalRecords]="totalRecords"
+      [paginatorPosition]="'top'"
+      [pageLinkSize]="5"
+      [showCurrentPageReport]="true"
+      [currentPageReportTemplate]="'Hiển thị {first} - {last} trong tổng số {totalRecords} bản ghi'"
+      [globalFilterFields]="globalFilterFields"
+      [first]="page * size"
+      (onPage)="onPageChange($event)"
+      (onSort)="onSortChange($event)"
+      styleClass="p-datatable-gridlines small-table p-datatable-scrollable"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th
+            *ngFor="let col of displayedColumns"
+            [pSortableColumn]="col.sortable !== false ? col.field : undefined"
+            [style.width]="col.width || 'auto'"
+            [style.min-width]="col.minWidth || col.width || 'auto'"
+          >
+            <div class="th-content">
+              <span class="th-title">{{ col.header }}</span>
+              <p-sortIcon [field]="col.field" *ngIf="col.sortable !== false"></p-sortIcon>
+            </div>
+          </th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+        <tr>
+          <td
+            *ngFor="let col of displayedColumns"
+            [style.width]="col.width || 'auto'"
+            [style.min-width]="col.minWidth || col.width || 'auto'"
+            class="small-text"
+          >
+            <ng-container [ngSwitch]="col.field">
+              <span *ngSwitchCase="'id'">
+                {{ row.id }}
+              </span>
+              <span *ngSwitchCase="'editedAt'">
+                {{ row.editedAt | date: 'dd/MM/yyyy HH:mm' }}
+              </span>
+              <span *ngSwitchCase="'relativeTime'">
+                {{ getRelativeTime(row.editedAt) }}
+              </span>
+              <span *ngSwitchDefault class="text-wrap">{{ row[col.field] || '-' }}</span>
+            </ng-container>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td [attr.colspan]="displayedColumns.length" class="text-center py-4">
+            Không có log chỉnh sửa nào khớp điều kiện tìm kiếm.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Column Selector Dialog -->
+  <p-dialog
+    [(visible)]="showColumnSelector"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="column-selector-dialog rounded-dialog"
+    header="Tùy chỉnh hiển thị cột"
+    [style]="{ width: '480px', 'max-width': '90vw' }"
+  >
+    <div class="column-selector-content">
+      <div class="column-options-header mb-3">
+        <h4 class="mb-1">
+          <i class="pi pi-list mr-2"></i>
+          Hiển thị tất cả
+        </h4>
+        <p>Chọn các cột muốn hiển thị trên bảng log chỉnh sửa</p>
+      </div>
+
+      <div class="column-options-grid">
+        <div
+          *ngFor="let column of columnConfig"
+          class="column-option-card"
+          [class.disabled]="column.alwaysVisible"
+          (click)="!column.alwaysVisible && toggleColumnVisibility(column)"
+        >
+          <div class="column-option-content">
+            <div class="column-icon">
+              <i class="pi pi-circle" [class.pi-check-circle]="column.visible"></i>
+            </div>
+            <div class="column-info">
+              <span class="column-header">{{ column.header }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column-actions mt-4 pt-3">
+        <div class="flex justify-content-between align-items-center gap-3">
+          <button
+            pButton
+            type="button"
+            label="Đặt lại mặc định"
+            class="p-button-outlined dialog-action-btn"
+            (click)="resetColumnVisibility()"
+          ></button>
+          <button
+            pButton
+            type="button"
+            label="Thoát"
+            class="p-button-outlined dialog-action-btn"
+            (click)="showColumnSelector = false"
+          ></button>
+        </div>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Loading Dialog -->
+  <p-dialog
+    [(visible)]="loading"
+    [modal]="true"
+    [closable]="false"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="loading-dialog"
+    [showHeader]="false"
+  >
+    <div class="loading-content">
+      <div class="loading-spinner">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+      </div>
+      <div class="loading-text">
+        <h4>Đang tải dữ liệu...</h4>
+        <p>Vui lòng chờ trong giây lát</p>
+      </div>
+    </div>
+  </p-dialog>
+</div>
