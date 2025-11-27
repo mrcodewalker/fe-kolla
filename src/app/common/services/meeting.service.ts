@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Meeting } from '../models/meeting.model';
 import { BaseService } from './base.service';
@@ -65,5 +65,45 @@ export class MeetingService extends BaseService<Meeting> {
    */
   updateIsMeeting(id: number): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${id}/is-meeting`, {});
+  }
+
+  getMemberMeetingStats(params: { startDate?: string; endDate?: string }) {
+    let httpParams = new HttpParams();
+
+    if (params.startDate) {
+      httpParams = httpParams.set('startDate', params.startDate);
+    }
+
+    if (params.endDate) {
+      httpParams = httpParams.set('endDate', params.endDate);
+    }
+
+    return this.http.get<any>(`${this.apiUrl}/stats/members`, {
+      params: httpParams
+    });
+  }
+
+  /**
+   * Get daily meeting stats for charting
+   * @param params startDate, endDate (format: dd/MM/yyyy) or days preset
+   */
+  getDailyMeetingStats(params: { startDate?: string; endDate?: string; days?: number }) {
+    let httpParams = new HttpParams();
+
+    if (params.startDate) {
+      httpParams = httpParams.set('startDate', params.startDate);
+    }
+
+    if (params.endDate) {
+      httpParams = httpParams.set('endDate', params.endDate);
+    }
+
+    if (params.days) {
+      httpParams = httpParams.set('days', params.days.toString());
+    }
+
+    return this.http.get<any>(`${this.apiUrl}/stats/daily`, {
+      params: httpParams
+    });
   }
 }

@@ -26,10 +26,13 @@ export class AuthGuard implements CanActivate {
       return this.router.createUrlTree(['/login']);
     }
 
-    const requiredRole = route.data['role'] as string;
-    if (requiredRole) {
+    const singleRole = route.data['role'] as string | undefined;
+    const multipleRoles = route.data['roles'] as string[] | undefined;
+    const requiredRoles = multipleRoles ?? (singleRole ? [singleRole] : null);
+
+    if (requiredRoles?.length) {
       const userRole = this.authService.getCurrentUserRole();
-      if (userRole !== requiredRole) {
+      if (!userRole || !requiredRoles.includes(userRole)) {
         return this.router.createUrlTree(['/unauthorized']);
       }
     }

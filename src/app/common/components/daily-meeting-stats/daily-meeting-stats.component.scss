@@ -1,0 +1,634 @@
+// Shared palette
+$primary: #6366F1;
+$primary-dark: #4F46E5;
+$accent: #EC4899;
+$success: #10B981;
+$warning: #F59E0B;
+$surface: #FFFFFF;
+$surface-alt: #F8FAFC;
+$text-primary: #0F172A;
+$text-secondary: #475569;
+$text-muted: #94A3B8;
+$border: #E2E8F0;
+$shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+$shadow-lg: 0 12px 32px -8px rgb(15 23 42 / 0.25);
+$transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: linear-gradient(180deg, $surface 0%, $surface-alt 100%);
+  border-radius: 1.25rem;
+  border: 1px solid $border;
+  box-shadow: $shadow-lg;
+}
+
+.stats-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  .header-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header-badge {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, $primary 0%, $accent 100%);
+    box-shadow: 0 10px 25px rgb(99 102 241 / 0.35);
+
+    i {
+      color: white;
+      font-size: 1.25rem;
+    }
+  }
+
+  .eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $primary;
+    font-weight: 700;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    color: $text-primary;
+    letter-spacing: -0.02em;
+  }
+}
+
+.last-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: $text-secondary;
+  background: $surface;
+  border: 1px solid $border;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+
+  i {
+    color: $primary;
+  }
+}
+
+// Summary cards
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.35rem;
+  border-radius: 1rem;
+  background: $surface;
+  border: 1px solid $border;
+  box-shadow: $shadow-md;
+
+  &.meetings {
+    background: linear-gradient(135deg, lighten($primary, 8%) 0%, $primary 100%);
+    color: white;
+  }
+
+  &.participants {
+    background: linear-gradient(135deg, lighten($success, 12%) 0%, $success 100%);
+    color: white;
+  }
+
+  .summary-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.18);
+
+    i {
+      font-size: 1.35rem;
+    }
+  }
+
+  .summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .summary-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
+    }
+
+    .summary-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+  }
+}
+
+// Date presets
+.date-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 1rem;
+
+  .presets-label {
+    font-weight: 600;
+    color: $text-secondary;
+  }
+
+  .presets-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    .preset-btn {
+      border: 1px solid $border;
+      border-radius: 999px;
+      background: $surface-alt;
+      padding: 0.35rem 0.9rem;
+      font-weight: 600;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: all $transition;
+
+      &.active,
+      &:hover {
+        border-color: $primary;
+        color: $primary;
+        background: rgba($primary, 0.08);
+        box-shadow: 0 0 0 3px rgba($primary, 0.15);
+      }
+    }
+  }
+}
+
+// Shared controls
+.chart-type-selector {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  background: $surface;
+  border-radius: 1rem;
+  border: 1px solid $border;
+  width: fit-content;
+}
+
+.chart-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &:hover {
+    color: $primary;
+    background: rgba($primary, 0.08);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
+    color: white;
+    box-shadow: 0 8px 20px rgb(79 70 229 / 0.35);
+  }
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  background: $surface;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid $border;
+}
+
+.filter-field {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $text-primary;
+
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    i {
+      color: $primary;
+    }
+  }
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex: 0 0 auto;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.85rem;
+  padding: 0.75rem 1.4rem;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.primary {
+    background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
+    color: white;
+    box-shadow: 0 10px 20px rgb(99 102 241 / 0.35);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+  }
+
+  &.ghost {
+    background: $surface-alt;
+    border: 1px solid $border;
+    color: $text-primary;
+
+    &:hover:not(:disabled) {
+      background: darken($surface-alt, 4%);
+    }
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  border-radius: 1rem;
+  border: 1px dashed $border;
+  background: $surface;
+  text-align: center;
+
+  .loading-spinner,
+  .empty-icon {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: $surface-alt;
+    margin-bottom: 1rem;
+
+    i {
+      color: $primary;
+      font-size: 1.5rem;
+    }
+  }
+
+  h3 {
+    margin: 0 0 0.5rem;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+  }
+}
+
+.chart-wrapper {
+  background: $surface;
+  border-radius: 1rem;
+  border: 1px solid $border;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.chart-container {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.pie-chart {
+    min-height: 300px;
+  }
+
+  .pie-charts-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+
+    .pie-chart-item {
+      background: $surface-alt;
+      border-radius: 1rem;
+      padding: 1rem;
+      border: 1px solid $border;
+
+      h4 {
+        margin: 0 0 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+        color: $text-primary;
+
+        i {
+          color: $primary;
+        }
+      }
+    }
+  }
+}
+
+// Table styles
+.table-wrapper {
+  background: $surface;
+  border-radius: 1rem;
+  border: 1px solid $border;
+  overflow: hidden;
+
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: $surface-alt;
+    border-bottom: 1px solid $border;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: $text-primary;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      i {
+        color: $primary;
+      }
+    }
+
+    .table-count {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: $text-secondary;
+      background: $surface;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid $border;
+    }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 0.85rem 1.25rem;
+      text-align: left;
+    }
+
+    thead th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: $text-secondary;
+      border-bottom: 1px solid $border;
+      background: $surface-alt;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid $border;
+      transition: background $transition;
+
+      &:hover {
+        background: rgba($primary, 0.03);
+      }
+    }
+
+    .rank-badge .rank-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.5rem;
+      background: $surface-alt;
+      border: 1px solid $border;
+      font-weight: 600;
+      color: $primary;
+    }
+
+    .date-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: $text-primary;
+
+      i {
+        color: $primary;
+      }
+    }
+
+    .meeting-count {
+      color: $primary;
+      font-weight: 700;
+    }
+
+    .participant-count {
+      color: $success;
+      font-weight: 700;
+    }
+
+    tfoot {
+      background: $surface-alt;
+      font-weight: 700;
+    }
+  }
+}
+
+.text-right {
+  text-align: right;
+}
+
+// PrimeNG calendar
+:host ::ng-deep .p-calendar {
+  width: 100%;
+}
+
+:host ::ng-deep .p-calendar .p-inputtext {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid $border;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
+  font-weight: 500;
+  transition: all $transition;
+
+  &:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.15);
+  }
+}
+
+:host ::ng-deep .p-calendar .p-button {
+  border: none;
+  background: transparent;
+  color: $primary;
+
+  &:hover {
+    background: rgba($primary, 0.1);
+  }
+}
+
+:host ::ng-deep .p-datepicker {
+  border-radius: 1rem;
+  border: 1px solid $border;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+}
+
+// ngx-charts overrides
+:host ::ng-deep .ngx-charts {
+  text {
+    fill: $text-secondary;
+    font-family: inherit;
+    font-size: 0.8rem;
+  }
+
+  .gridline-path {
+    stroke: $border;
+    stroke-dasharray: 4 4;
+  }
+
+  .axis-label {
+    fill: $text-primary;
+    font-weight: 600;
+  }
+
+  .bar {
+    transition: opacity $transition;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+
+  .line-series path {
+    stroke-width: 4 !important;
+  }
+
+  .circle {
+    r: 6 !important;
+    stroke-width: 3;
+    stroke: white;
+    filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.2));
+    transition: all $transition;
+
+    &:hover {
+      r: 9 !important;
+    }
+  }
+
+  .arc {
+    transition: opacity $transition;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+
+  .legend-label-text {
+    fill: $text-primary;
+    font-weight: 600;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .stats-card {
+    padding: 1.25rem;
+  }
+
+  .chart-type-selector,
+  .date-presets {
+    flex-direction: column;
+    align-items: stretch;
+
+    .presets-buttons,
+    .chart-type-selector {
+      width: 100%;
+      overflow-x: auto;
+    }
+  }
+
+  .filter-field {
+    flex: 1 1 100%;
+  }
+
+  .filter-actions {
+    width: 100%;
+
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  .summary-card .summary-value {
+    font-size: 1.5rem;
+  }
+}
+

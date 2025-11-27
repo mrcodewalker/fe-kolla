@@ -1,0 +1,414 @@
+<section class="stats-card">
+  <header class="stats-card__header">
+    <div class="header-content">
+      <div class="header-badge">
+        <i class="pi pi-chart-bar"></i>
+      </div>
+      <div>
+        <p class="eyebrow">Báo cáo hoạt động</p>
+        <h2>Thống kê cuộc họp theo thành viên</h2>
+      </div>
+    </div>
+    <span class="last-updated" *ngIf="lastUpdated">
+      <i class="pi pi-clock"></i>
+      Cập nhật {{ lastUpdated | date:'dd/MM/yyyy HH:mm' }}
+    </span>
+  </header>
+
+  <!-- Chart Type Selector -->
+  <div class="chart-type-selector">
+    <button
+      *ngFor="let ct of chartTypes"
+      class="chart-type-btn"
+      [class.active]="chartType === ct.type"
+      (click)="setChartType(ct.type)"
+      type="button"
+    >
+      <i [class]="ct.icon"></i>
+      <span>{{ ct.label }}</span>
+    </button>
+  </div>
+
+  <form class="filter-bar" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <label class="filter-field">
+      <span><i class="pi pi-calendar"></i> Từ ngày</span>
+      <p-calendar
+        formControlName="startDate"
+        [showIcon]="true"
+        dateFormat="dd/mm/yy"
+        inputId="startDate"
+        [maxDate]="form.get('endDate')?.value"
+      ></p-calendar>
+    </label>
+
+    <label class="filter-field">
+      <span><i class="pi pi-calendar"></i> Đến ngày</span>
+      <p-calendar
+        formControlName="endDate"
+        [showIcon]="true"
+        dateFormat="dd/mm/yy"
+        inputId="endDate"
+        [minDate]="form.get('startDate')?.value"
+      ></p-calendar>
+    </label>
+
+    <label class="filter-field search-field">
+      <span><i class="pi pi-search"></i> Tìm kiếm</span>
+      <div class="search-input">
+        <i class="pi pi-search"></i>
+        <input
+          #searchBox
+          type="text"
+          placeholder="Nhập tên hoặc email"
+          [value]="searchTerm"
+          (input)="onSearch(searchBox.value)"
+        />
+      </div>
+    </label>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn primary" [disabled]="loading">
+        <i class="pi pi-sync" [class.pi-spin]="loading"></i>
+        {{ loading ? 'Đang tải...' : 'Xem thống kê' }}
+      </button>
+      <button type="button" class="btn ghost" (click)="resetRange()" [disabled]="loading">
+        <i class="pi pi-refresh"></i>
+        Đặt lại
+      </button>
+    </div>
+  </form>
+
+  <div class="content">
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="loading-spinner">
+        <i class="pi pi-spin pi-spinner"></i>
+      </div>
+      <p>Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="chart-wrapper" *ngIf="!loading && chartData.length; else emptyState">
+      <!-- Bar Chart -->
+      <div class="chart-container bar-chart" *ngIf="chartType === 'bar'">
+        <ngx-charts-bar-horizontal
+          [view]="view"
+          [results]="chartData"
+          [xAxis]="showXAxis"
+          [yAxis]="showYAxis"
+          [gradient]="gradient"
+          [showXAxisLabel]="showXAxisLabel"
+          [showYAxisLabel]="showYAxisLabel"
+          [xAxisLabel]="yAxisLabel"
+          [yAxisLabel]="xAxisLabel"
+          [scheme]="colorScheme"
+          [roundEdges]="true"
+          [showDataLabel]="true"
+          [barPadding]="12"
+          (select)="onSelect($event)">
+        </ngx-charts-bar-horizontal>
+      </div>
+
+      <!-- Line Chart -->
+      <div class="chart-container line-chart" *ngIf="chartType === 'line'">
+        <ngx-charts-line-chart
+          [view]="view"
+          [results]="lineChartData"
+          [xAxis]="showXAxis"
+          [yAxis]="showYAxis"
+          [gradient]="false"
+          [showXAxisLabel]="showXAxisLabel"
+          [showYAxisLabel]="showYAxisLabel"
+          [xAxisLabel]="xAxisLabel"
+          [yAxisLabel]="yAxisLabel"
+          [scheme]="colorScheme"
+          [autoScale]="false"
+          [yScaleMin]="yScaleMin"
+          [yScaleMax]="yScaleMax"
+          [roundDomains]="roundDomains"
+          [showGridLines]="showGridLines"
+          [animations]="true"
+          (select)="onSelect($event)">
+        </ngx-charts-line-chart>
+      </div>
+
+      <!-- Pie / Doughnut Chart -->
+      <div class="chart-container pie-chart" *ngIf="chartType === 'pie'">
+        <ngx-charts-pie-chart
+          [view]="view"
+          [results]="chartData"
+          [scheme]="colorScheme"
+          [legend]="true"
+          [legendPosition]="legendPosition"
+          [legendTitle]="'Thành viên'"
+          [labels]="showLabels"
+          [doughnut]="isDoughnut"
+          [arcWidth]="arcWidth"
+          [explodeSlices]="explodeSlices"
+          [gradient]="gradient"
+          [animations]="true"
+          (select)="onSelect($event)">
+        </ngx-charts-pie-chart>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #emptyState>
+      <div class="empty-state" *ngIf="!loading">
+        <div class="empty-icon">
+          <i class="pi pi-inbox"></i>
+        </div>
+        <h3>Không có dữ liệu</h3>
+        <p>Không có dữ liệu trong khoảng thời gian được chọn.</p>
+        <small>Hãy thử chọn khoảng thời gian rộng hơn hoặc điều chỉnh bộ lọc.</small>
+      </div>
+    </ng-template>
+
+    <!-- Data Table -->
+    <div class="table-wrapper" *ngIf="filteredStats.length">
+      <div class="table-header">
+        <h3><i class="pi pi-list"></i> Chi tiết thống kê</h3>
+        <span class="table-count">{{ filteredStats.length }} thành viên</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="rank-col">#</th>
+            <th>Thành viên</th>
+            <th>Email</th>
+            <th class="text-right">Cuộc họp</th>
+            <th class="action-col">Chi tiết</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            *ngFor="let member of filteredStats; let idx = index" 
+            [class.top-rank]="idx < 3"
+            class="clickable-row"
+            (click)="openMemberMeetingsDialog(member)"
+          >
+            <td class="rank-badge">
+              <span class="rank-number" [attr.data-rank]="idx + 1">{{ idx + 1 }}</span>
+            </td>
+            <td>
+              <div class="member-cell">
+                <span class="member-name">{{ member.name }}</span>
+                <div class="progress-row">
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="maxMeetingCount ? (member.meetingCount / maxMeetingCount) * 100 : 0"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="email-cell">{{ member.email }}</td>
+            <td class="text-right meeting-count">{{ member.meetingCount }}</td>
+            <td class="action-col">
+              <button 
+                type="button" 
+                class="detail-btn"
+                (click)="openMemberMeetingsDialog(member); $event.stopPropagation()"
+              >
+                <i class="pi pi-eye"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Custom Meeting Details Modal -->
+  <div 
+    class="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+    *ngIf="dialogVisible"
+    (click)="onOverlayClick($event)"
+  >
+    <div 
+      #dialogPanel
+      class="modal-panel bg-white rounded-2xl shadow-2xl w-[900px] max-w-[95vw] max-h-[90vh] flex flex-col overflow-hidden"
+      [style.transform]="'translate(' + dialogPosition.x + 'px, ' + dialogPosition.y + 'px)'"
+      [class.dragging]="isDragging"
+    >
+      <!-- Header - Draggable -->
+      <div 
+        class="modal-header px-6 py-4 bg-gradient-to-r from-indigo-50 to-pink-50 border-b border-slate-200 cursor-move select-none flex items-center justify-between"
+        (mousedown)="onDragStart($event)"
+      >
+        <div class="flex items-center gap-4">
+          <div class="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-pink-500 rounded-xl shadow-lg shadow-indigo-500/40">
+            <i class="pi pi-calendar text-white text-lg"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-indigo-600">Chi tiết cuộc họp</span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5" *ngIf="selectedMember">{{ selectedMember.name }}</h3>
+          </div>
+        </div>
+        <button 
+          type="button"
+          class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-200/70 transition-colors text-slate-500 hover:text-slate-700"
+          (click)="closeMemberMeetingsDialog()"
+        >
+          <i class="pi pi-times text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="modal-content flex-1 overflow-y-auto p-6 space-y-5">
+        <!-- Member Info -->
+        <div class="flex flex-wrap gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200" *ngIf="selectedMember">
+          <div class="flex items-center gap-2 text-sm text-slate-600">
+            <i class="pi pi-user text-indigo-500"></i>
+            <span>{{ selectedMember.name }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-slate-600">
+            <i class="pi pi-envelope text-indigo-500"></i>
+            <span>{{ selectedMember.email }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-pink-500 px-3 py-1 rounded-full">
+            <i class="pi pi-chart-bar"></i>
+            <span>{{ selectedMember.meetingCount }} cuộc họp</span>
+          </div>
+        </div>
+
+        <!-- Date Range Info -->
+        <div class="flex items-center gap-2 text-sm text-slate-600 px-4 py-2.5 bg-indigo-50 rounded-lg border-l-4 border-indigo-500">
+          <i class="pi pi-calendar-times text-indigo-500"></i>
+          <span>
+            Từ {{ form.get('startDate')?.value | date:'dd/MM/yyyy' }} 
+            đến hôm nay ({{ today | date:'dd/MM/yyyy' }})
+          </span>
+        </div>
+
+        <!-- Loading State -->
+        <div class="flex flex-col items-center justify-center gap-3 py-12 text-slate-500" *ngIf="loadingMeetings">
+          <i class="pi pi-spin pi-spinner text-4xl text-indigo-500"></i>
+          <span class="font-medium">Đang tải danh sách cuộc họp...</span>
+        </div>
+
+        <!-- Meetings Table -->
+        <div class="rounded-xl border border-slate-200 overflow-hidden" *ngIf="!loadingMeetings && memberMeetings.length">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                  <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Tiêu đề</th>
+                  <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Phòng</th>
+                  <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Thời gian bắt đầu</th>
+                  <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Thời gian kết thúc</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  *ngFor="let meeting of memberMeetings; let i = index" 
+                  class="border-b border-slate-100 last:border-0 hover:bg-indigo-50/30 transition-colors"
+                >
+                  <td class="px-4 py-3">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-semibold text-slate-900">{{ meeting.title }}</span>
+                      <span 
+                        *ngIf="meeting.meetingCode" 
+                        class="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded w-fit"
+                      >{{ meeting.meetingCode }}</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex px-2.5 py-1 bg-slate-100 text-slate-600 text-sm rounded-md border border-slate-200">
+                      {{ meeting.roomName || 'N/A' }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-slate-600">{{ formatMeetingDate(meeting.startTime) }}</td>
+                  <td class="px-4 py-3 text-sm text-slate-600">{{ formatMeetingDate(meeting.endTime) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200" *ngIf="totalPages > 1">
+            <div class="text-sm text-slate-600">
+              Hiển thị {{ (currentPage - 1) * pageSize + 1 }} - {{ currentPage * pageSize > totalMeetings ? totalMeetings : currentPage * pageSize }} / {{ totalMeetings }} cuộc họp
+            </div>
+            <div class="flex items-center gap-1">
+              <!-- First Page -->
+              <button 
+                type="button"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                [disabled]="currentPage === 1"
+                (click)="goToPage(1)"
+              >
+                <i class="pi pi-angle-double-left text-sm"></i>
+              </button>
+              
+              <!-- Prev Page -->
+              <button 
+                type="button"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                [disabled]="currentPage === 1"
+                (click)="prevPage()"
+              >
+                <i class="pi pi-angle-left text-sm"></i>
+              </button>
+
+              <!-- Page Numbers -->
+              <ng-container *ngFor="let page of paginationPages">
+                <button 
+                  type="button"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-all"
+                  [class]="page === currentPage 
+                    ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30' 
+                    : 'text-slate-600 hover:bg-slate-200'"
+                  (click)="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+              </ng-container>
+
+              <!-- Next Page -->
+              <button 
+                type="button"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                [disabled]="currentPage === totalPages"
+                (click)="nextPage()"
+              >
+                <i class="pi pi-angle-right text-sm"></i>
+              </button>
+
+              <!-- Last Page -->
+              <button 
+                type="button"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                [disabled]="currentPage === totalPages"
+                (click)="goToPage(totalPages)"
+              >
+                <i class="pi pi-angle-double-right text-sm"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="flex flex-col items-center justify-center gap-3 py-12 text-center" *ngIf="!loadingMeetings && !memberMeetings.length">
+          <div class="w-20 h-20 flex items-center justify-center bg-slate-100 rounded-full">
+            <i class="pi pi-inbox text-4xl text-slate-400"></i>
+          </div>
+          <p class="text-slate-600 font-medium">Không tìm thấy cuộc họp nào trong khoảng thời gian này.</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button 
+          type="button" 
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm border border-slate-200 transition-colors"
+          (click)="closeMemberMeetingsDialog()"
+        >
+          <i class="pi pi-times"></i>
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

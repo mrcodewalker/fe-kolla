@@ -25,6 +25,7 @@ import { TagModule } from 'primeng/tag';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ApiInterceptor } from './common/interceptors/api.interceptor';
+import { DailyMeetingStatsModule } from './common/components/daily-meeting-stats/daily-meeting-stats.module';
 
 // Components
 import { DataTableComponent } from './common/components/data-table/data-table.component';
@@ -99,7 +100,8 @@ import { EditLogManagementComponent } from './common/components/edit-log-managem
     TooltipModule,
     RippleModule,
     CheckboxModule,
-    TagModule
+    TagModule,
+    DailyMeetingStatsModule
   ],
   providers: [
     {

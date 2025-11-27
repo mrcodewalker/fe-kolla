@@ -1,0 +1,257 @@
+<section class="stats-card">
+  <header class="stats-card__header">
+    <div class="header-content">
+      <div class="header-badge">
+        <i class="pi pi-calendar"></i>
+      </div>
+      <div>
+        <p class="eyebrow">Dashboard</p>
+        <h2>Thống kê cuộc họp theo ngày</h2>
+      </div>
+    </div>
+    <span class="last-updated" *ngIf="lastUpdated">
+      <i class="pi pi-clock"></i>
+      Cập nhật {{ lastUpdated | date:'dd/MM/yyyy HH:mm' }}
+    </span>
+  </header>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card meetings">
+      <div class="summary-icon">
+        <i class="pi pi-video"></i>
+      </div>
+      <div class="summary-content">
+        <span class="summary-label">Tổng cuộc họp</span>
+        <span class="summary-value">{{ totalMeetings }}</span>
+      </div>
+    </div>
+    <div class="summary-card participants">
+      <div class="summary-icon">
+        <i class="pi pi-users"></i>
+      </div>
+      <div class="summary-content">
+        <span class="summary-label">Tổng người tham gia</span>
+        <span class="summary-value">{{ totalParticipants }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Date Presets -->
+  <div class="date-presets">
+    <span class="presets-label">Xem nhanh:</span>
+    <div class="presets-buttons">
+      <button
+        *ngFor="let preset of datePresets"
+        type="button"
+        class="preset-btn"
+        [class.active]="selectedPreset === preset.days"
+        (click)="selectPreset(preset.days)"
+      >
+        {{ preset.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart Type Selector -->
+  <div class="chart-type-selector">
+    <button
+      *ngFor="let ct of chartTypes"
+      class="chart-type-btn"
+      [class.active]="chartType === ct.type"
+      (click)="setChartType(ct.type)"
+      type="button"
+    >
+      <i [class]="ct.icon"></i>
+      <span>{{ ct.label }}</span>
+    </button>
+  </div>
+
+  <form class="filter-bar" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <label class="filter-field">
+      <span><i class="pi pi-calendar"></i> Từ ngày</span>
+      <p-calendar
+        formControlName="startDate"
+        [showIcon]="true"
+        dateFormat="dd/mm/yy"
+        inputId="startDate"
+        [maxDate]="form.get('endDate')?.value"
+      ></p-calendar>
+    </label>
+
+    <label class="filter-field">
+      <span><i class="pi pi-calendar"></i> Đến ngày</span>
+      <p-calendar
+        formControlName="endDate"
+        [showIcon]="true"
+        dateFormat="dd/mm/yy"
+        inputId="endDate"
+        [minDate]="form.get('startDate')?.value"
+      ></p-calendar>
+    </label>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn primary" [disabled]="loading">
+        <i class="pi pi-sync" [class.pi-spin]="loading"></i>
+        {{ loading ? 'Đang tải...' : 'Xem thống kê' }}
+      </button>
+      <button type="button" class="btn ghost" (click)="resetRange()" [disabled]="loading">
+        <i class="pi pi-refresh"></i>
+        Đặt lại
+      </button>
+    </div>
+  </form>
+
+  <div class="content">
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="loading-spinner">
+        <i class="pi pi-spin pi-spinner"></i>
+      </div>
+      <p>Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="chart-wrapper" *ngIf="!loading && dailyStats.length; else emptyState">
+      <!-- Line Chart -->
+      <div class="chart-container line-chart" *ngIf="chartType === 'line'">
+        <ngx-charts-line-chart
+          [view]="view"
+          [results]="lineChartData"
+          [xAxis]="showXAxis"
+          [yAxis]="showYAxis"
+          [gradient]="false"
+          [showXAxisLabel]="showXAxisLabel"
+          [showYAxisLabel]="showYAxisLabel"
+          [xAxisLabel]="xAxisLabel"
+          [yAxisLabel]="yAxisLabel"
+          [scheme]="colorScheme"
+          [legend]="showLegend"
+          [legendPosition]="legendPosition"
+          [legendTitle]="'Chú thích'"
+          [autoScale]="false"
+          [yScaleMin]="yScaleMin"
+          [yScaleMax]="yScaleMax"
+          [roundDomains]="roundDomains"
+          [showGridLines]="showGridLines"
+          [animations]="true"
+          (select)="onSelect($event)">
+        </ngx-charts-line-chart>
+      </div>
+
+      <!-- Bar Chart -->
+      <div class="chart-container bar-chart" *ngIf="chartType === 'bar'">
+        <ngx-charts-bar-vertical-2d
+          [view]="view"
+          [results]="[
+            { name: 'Cuộc họp', series: meetingChartData },
+            { name: 'Người tham gia', series: participantChartData }
+          ]"
+          [xAxis]="showXAxis"
+          [yAxis]="showYAxis"
+          [gradient]="false"
+          [showXAxisLabel]="showXAxisLabel"
+          [showYAxisLabel]="showYAxisLabel"
+          [xAxisLabel]="xAxisLabel"
+          [yAxisLabel]="yAxisLabel"
+          [scheme]="colorScheme"
+          [legend]="showLegend"
+          [legendPosition]="legendPosition"
+          [legendTitle]="'Chú thích'"
+          [showDataLabel]="true"
+          [barPadding]="4"
+          [groupPadding]="16"
+          [roundEdges]="true"
+          (select)="onSelect($event)">
+        </ngx-charts-bar-vertical-2d>
+      </div>
+
+      <!-- Pie Chart - Meetings -->
+      <div class="chart-container pie-chart" *ngIf="chartType === 'pie'">
+        <div class="pie-charts-wrapper">
+          <div class="pie-chart-item">
+            <h4><i class="pi pi-video"></i> Cuộc họp theo ngày</h4>
+            <ngx-charts-pie-chart
+              [view]="[400, 350]"
+              [results]="meetingChartData"
+              [scheme]="colorScheme"
+              [legend]="true"
+              [legendPosition]="legendPosition"
+              [labels]="showLabels"
+              [doughnut]="isDoughnut"
+              [arcWidth]="arcWidth"
+              [gradient]="false"
+              [animations]="true"
+              (select)="onSelect($event)">
+            </ngx-charts-pie-chart>
+          </div>
+          <div class="pie-chart-item">
+            <h4><i class="pi pi-users"></i> Người tham gia theo ngày</h4>
+            <ngx-charts-pie-chart
+              [view]="[400, 350]"
+              [results]="participantChartData"
+              [scheme]="colorScheme"
+              [legend]="true"
+              [legendPosition]="legendPosition"
+              [labels]="showLabels"
+              [doughnut]="isDoughnut"
+              [arcWidth]="arcWidth"
+              [gradient]="false"
+              [animations]="true"
+              (select)="onSelect($event)">
+            </ngx-charts-pie-chart>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #emptyState>
+      <div class="empty-state" *ngIf="!loading">
+        <div class="empty-icon">
+          <i class="pi pi-inbox"></i>
+        </div>
+        <h3>Không có dữ liệu</h3>
+        <p>Không có dữ liệu trong khoảng thời gian được chọn.</p>
+        <small>Hãy thử chọn khoảng thời gian rộng hơn.</small>
+      </div>
+    </ng-template>
+
+    <!-- Data Table -->
+    <div class="table-wrapper" *ngIf="dailyStats.length">
+      <div class="table-header">
+        <h3><i class="pi pi-list"></i> Chi tiết theo ngày</h3>
+        <span class="table-count">{{ dailyStats.length }} ngày</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ngày</th>
+            <th class="text-right">Cuộc họp</th>
+            <th class="text-right">Người tham gia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="total-row">
+            <td colspan="2"><strong>Tổng cộng</strong></td>
+            <td class="text-right"><strong>{{ totalMeetings }}</strong></td>
+            <td class="text-right"><strong>{{ totalParticipants }}</strong></td>
+          </tr>
+          <tr *ngFor="let stat of dailyStats; let idx = index">
+            <td class="rank-badge">
+              <span class="rank-number">{{ idx + 1 }}</span>
+            </td>
+            <td class="date-cell">
+              <i class="pi pi-calendar"></i>
+              {{ formatDisplayDate(stat.date) }}
+            </td>
+            <td class="text-right meeting-count">{{ stat.meetingCount }}</td>
+            <td class="text-right participant-count">{{ stat.participantCount }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
